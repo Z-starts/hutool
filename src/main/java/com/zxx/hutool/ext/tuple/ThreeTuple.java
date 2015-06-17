@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.xiaoleilu.hutool.tuple;
+package com.zxx.hutool.ext.tuple;
 
 import org.apache.commons.lang.ObjectUtils;
 
