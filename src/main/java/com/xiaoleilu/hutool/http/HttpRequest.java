@@ -22,7 +22,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	/** 默认超时 */
 	private int timeout = -1;
 	/**存储表单数据*/
-	protected Map<String, Object> form;
+	protected Map<String, Object> form = new HashMap<String, Object>();
 	
 	/** 连接对象 */
 	private HttpConnection httpConnection;
@@ -117,12 +117,6 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 * @param value 值
 	 */
 	public HttpRequest form(String name, Object value) {
-		if(this.form == null) {
-			form = new HashMap<String, Object>();
-			//停用body
-			this.body =null;
-		}
-		
 		form.put(name, Conver.toStr(value, null));
 
 		return this;
@@ -169,10 +163,11 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	/**
 	 * 设置内容主体
 	 * @param body
+
 	 */
 	public HttpRequest body(String body) {
 		this.body = body;
-		this.form = null; //当使用body时，废弃form的使用
+		this.form = null;
 		contentLength(body.length());
 		return this;
 	}
@@ -204,12 +199,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 */
 	public HttpResponse execute(){
 		if(Method.GET.equals(method)){
-			//优先使用body形式的参数，不存在使用form
-			if(StrUtil.isNotBlank(this.body)) {
-				this.url = HttpUtil.urlWithForm(this.url, this.body);
-			}else {
-				this.url = HttpUtil.urlWithForm(this.url, this.form);
-			}
+			this.url = HttpUtil.urlWithForm(this.url, this.form);
 		}
 		
 		//初始化 connection
@@ -221,7 +211,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		//发送请求
 		try {
 			if(Method.POST.equals(method)){
-				send();//发送数据
+				send();
 			} else {
 				this.httpConnection.connect();
 			}
@@ -246,7 +236,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 * 简单验证
 	 * @param username 用户名
 	 * @param password 密码
-	 * @return HttpRequest
+	 * @return
 	 */
 	public HttpRequest basicAuth(String username, String password) {
 		final String data = username.concat(":").concat(password);
@@ -264,13 +254,8 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 */
 	private void send() throws IOException {
 		final OutputStream out = this.httpConnection.getOutputStream();
-		//Write的时候会优先使用body中的内容，write时自动关闭OutputStream
 		if(null != out){
-			if(StrUtil.isNotBlank(this.body)) {
-				IoUtil.write(out, this.charset, true, this.body);
-			}else {
-				IoUtil.write(out, this.charset, true, HttpUtil.toParams(this.form));
-			}
+			IoUtil.write(out, this.charset, true, HttpUtil.toParams(this.form));
 		}
 	}
 	// ---------------------------------------------------------------- Private method end

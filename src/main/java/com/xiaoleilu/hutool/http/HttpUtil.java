@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletRequest;
 
 import com.xiaoleilu.hutool.CollectionUtil;
-import com.xiaoleilu.hutool.FileUtil;
 import com.xiaoleilu.hutool.IoUtil;
 import com.xiaoleilu.hutool.ReUtil;
 import com.xiaoleilu.hutool.StrUtil;
@@ -111,6 +110,7 @@ public class HttpUtil {
 	 * 
 	 * @param urlString 网址
 	 * @param customCharset 自定义请求字符集，如果字符集获取不到，使用此字符集
+	 * @param isPassCodeError 是否跳过非200异常
 	 * @return 返回内容，如果只检查状态码，正常只返回 ""，不正常返回 null
 	 * @throws IOException
 	 */
@@ -123,11 +123,13 @@ public class HttpUtil {
 	 * 
 	 * @param urlString 网址
 	 * @param paramMap post表单数据
+	 * @param customCharset 自定义请求字符集，发送时使用此字符集，获取返回内容如果字符集获取不到，使用此字符集
+	 * @param isPassCodeError 是否跳过非200异常
 	 * @return 返回数据
 	 * @throws IOException
 	 */
-	public static String post(String urlString, Map<String, Object> paramMap) throws IOException {
-		return HttpRequest.post(urlString).form(paramMap).execute().body();
+	public static String post(String urlString, Map<String, Object> paramMap, String customCharset, boolean isPassCodeError) throws IOException {
+		return post(urlString, toParams(paramMap), customCharset, isPassCodeError);
 	}
 
 	/**
@@ -135,11 +137,34 @@ public class HttpUtil {
 	 * 
 	 * @param urlString 网址
 	 * @param params post表单数据
+	 * @param customCharset 自定义请求字符集，发送时使用此字符集，获取返回内容如果字符集获取不到，使用此字符集
+	 * @param isPassCodeError 是否跳过非200异常
 	 * @return 返回数据
 	 * @throws IOException
 	 */
-	public static String post(String urlString, String params) throws IOException {
-		return HttpRequest.post(urlString).body(params).execute().body();
+	public static String post(String urlString, String params, String customCharset, boolean isPassCodeError) throws IOException {
+		URL url = new URL(urlString);
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+
+		conn.setRequestMethod("POST");
+		conn.setDoOutput(true);
+		conn.setDoInput(true);
+		conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+		IoUtil.write(conn.getOutputStream(), customCharset, true, params);
+
+		if (conn.getResponseCode() != 200) {
+			if (!isPassCodeError) {
+				throw new IOException("Status code not 200!");
+			}
+		}
+
+		/* 获取内容 */
+		String charset = getCharset(conn);
+		String content = IoUtil.getString(conn.getInputStream(), StrUtil.isBlank(charset) ? customCharset : charset);
+		conn.disconnect();
+
+		return content;
 	}
 
 	/**
@@ -151,13 +176,8 @@ public class HttpUtil {
 	 * @throws IOException
 	 */
 	public static String downloadString(String url, String customCharset) throws IOException {
-		InputStream in = null;
-		try {
-			in = new URL(url).openStream();
-			return IoUtil.getString(in, customCharset);
-		} finally {
-			FileUtil.close(in);
-		}
+		InputStream inputStream = new URL(url).openStream();
+		return IoUtil.getString(inputStream, customCharset);
 	}
 
 	/**
@@ -229,7 +249,7 @@ public class HttpUtil {
 	 * 将表单数据加到URL中（用于GET表单提交）
 	 * @param url URL
 	 * @param form 表单数据
-	 * @return 合成后的URL
+	 * @return
 	 */
 	public static String urlWithForm(String url, Map<String, Object> form) {
 		final String queryString = toParams(form);

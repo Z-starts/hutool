@@ -48,7 +48,7 @@ public class HttpConnection {
 	 * 创建HttpConnection
 	 * @param urlStr URL
 	 * @param method HTTP方法
-	 * @return HttpConnection
+	 * @return
 	 */
 	public static HttpConnection create(String urlStr, Method method) {
 		return new HttpConnection(urlStr, method);
@@ -167,8 +167,7 @@ public class HttpConnection {
 	 * 
 	 * @param header 头名
 	 * @param value 头值
-	 * @param isOverride 是否覆盖旧值
-	 * @return HttpConnection
+	 * @param 是否覆盖旧值
 	 */
 	public HttpConnection header(String header, String value, boolean isOverride) {
 		if (null != this.conn) {
@@ -188,8 +187,7 @@ public class HttpConnection {
 	 * 
 	 * @param header 头名
 	 * @param value 头值
-	 * @param isOverride 是否覆盖旧值
-	 * @return HttpConnection
+	 * @param 是否覆盖旧值
 	 */
 	public HttpConnection header(Header header, String value, boolean isOverride) {
 		return header(header.toString(), value, isOverride);
@@ -237,7 +235,8 @@ public class HttpConnection {
 	/**
 	 * 获取所有Http请求头
 	 * 
-	 * @return Http请求头Map
+	 * @param name Header名
+	 * @return Http请求头值
 	 */
 	public Map<String, List<String>> headers() {
 		return this.conn.getHeaderFields();
