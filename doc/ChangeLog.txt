@@ -39,3 +39,36 @@ SecureUtil中的base64EncodeTable改为私有
 
 2.8.0
 1.增加HTTP模块
+2. 修复VelocityUtil空指针问题
+
+2.8.1
+1. 修复ClassUtil中报名前缀为空时扫描类失败的错误
+
+2.8.2
+1. 修复Strutil.hasBlank方法
+
+2.8.3
+1. 增加DaoTemplate
+2. 调整SqlExecutor、SqlConnRunner、SqlRunner三个类的功能区分，去除继承依赖
+
+2.8.4
+1. 修复DaoTemplate
+
+2.8.5
+1. 为VelocityUtil增加Session参数的读取
+
+2.8.6
+1. 修复VelocityUtil中Session参数的bug
+
+2.8.7
+1. DaoTemplate增加addOrUpdate方法
+2. SqlBuilder增加IN，修复WHERE条件为空时WHERE关键字丢失问题
+
+2.9.0
+1. 为Velocity添加全局上下文功能
+
+2.9.1
+1. 修复db的SqlBuilder中where语句为空导致语法错误
+
+2.9.2
+1. 优化Singleton类，轻量化同步
