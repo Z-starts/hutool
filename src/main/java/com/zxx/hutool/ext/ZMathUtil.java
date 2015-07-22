@@ -78,7 +78,7 @@ public class ZMathUtil extends MathUtil {
 	 * @param digit 保留的小数位数
 	 * @return 保留小数后的字符串
 	 */
-	public static String roundStr(double number, int digit) {
+	public static String roundStr(Number number, Number digit) {
 		return String.format("%." + digit + 'f', number);
 	}
 
@@ -100,9 +100,9 @@ public class ZMathUtil extends MathUtil {
 	 * @param digit 精度
 	 * @return
 	 */
-	public static double divide(int y, int z, int digit) {
-		double baiy = y * 1.0;
-		double baiz = z * 1.0;
+	public static double divide(Number y, Number z, int digit) {
+		double baiy = y.doubleValue() * 1.0;
+		double baiz = z.doubleValue() * 1.0;
 		if (baiz == 0) {
 			return 0.00;
 		} else {
@@ -117,10 +117,10 @@ public class ZMathUtil extends MathUtil {
 	 * @param z
 	 * @return
 	 */
-	public static String caluate2PercentStr(int y, int z) {
+	public static String caluate2PercentStr(Number y, Number z) {
 		String baifenbi = "";// 接受百分比的值  
-		double baiy = y * 1.0;
-		double baiz = z * 1.0;
+		double baiy = y.doubleValue() * 1.0;
+		double baiz = z.doubleValue() * 1.0;
 		double fen = 0.00;
 		if (baiz != 0) {
 			fen = (baiy / baiz);
@@ -138,13 +138,13 @@ public class ZMathUtil extends MathUtil {
 	 * @param isWithPercent 返回的字符串是否带%号
 	 * @return
 	 */
-	public static String caluate2PercentStr(int y, int z, boolean isWithPercent) {
+	public static String caluate2PercentStr(Number y, Number z, boolean isWithPercent) {
 		String baifenbi = "";// 接受百分比的值  
 		if (isWithPercent) {
 			return caluate2PercentStr(y, z);
 		} else {
-			double baiy = y * 1.0;
-			double baiz = z * 1.0;
+			double baiy = y.doubleValue() * 1.0;
+			double baiz = z.doubleValue() * 1.0;
 			double fen = 0.00;
 			if (baiz != 0) {
 				fen = (baiy / baiz);
@@ -163,10 +163,10 @@ public class ZMathUtil extends MathUtil {
 	 * @param percentOnly 只去数值不带%号
 	 * @return
 	 */
-	public static String myPercent(int y, int z, boolean isWithPercent, boolean percentOnly) {
+	public static String myPercent(Number y, Number z, boolean isWithPercent, boolean percentOnly) {
 		String baifenbi = "";// 接受百分比的值  
-		double baiy = y * 1.0;
-		double baiz = z * 1.0;
+		double baiy = y.doubleValue() * 1.0;
+		double baiz = z.doubleValue() * 1.0;
 		double fen = 0.00;
 		if (baiz != 0) {
 			fen = (baiy / baiz);
@@ -251,7 +251,7 @@ public class ZMathUtil extends MathUtil {
 	 * @param d
 	 * @return
 	 */
-	public static String simpleFormatDouble(double d) {
+	public static String simpleFormatDouble(Number d) {
 		return String.format("%.2f", d);
 	}
 }

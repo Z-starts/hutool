@@ -1,12 +1,3 @@
-# Eclipse
+/target/
 .project
-.classpath
-/.settings
-
-# Maven
-/target
-
-# Gradle
-/.gradle
-/build
-/bin/
+.settings/
