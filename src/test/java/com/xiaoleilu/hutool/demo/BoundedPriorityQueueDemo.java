@@ -17,7 +17,7 @@ public class BoundedPriorityQueueDemo {
 		BoundedPriorityQueue<Integer> queue = new BoundedPriorityQueue<Integer>(5);
 		
 		//初始化队列，使用自定义的比较器
-		queue = new BoundedPriorityQueue<>(5, new Comparator<Integer>(){
+		queue = new BoundedPriorityQueue<Integer>(5, new Comparator<Integer>(){
 
 			@Override
 			public int compare(Integer o1, Integer o2) {
