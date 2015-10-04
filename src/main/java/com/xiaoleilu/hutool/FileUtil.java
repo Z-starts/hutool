@@ -1,17 +1,20 @@
 package com.xiaoleilu.hutool;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,11 +58,47 @@ public class FileUtil {
 		}
 		path = getAbsolutePath(path);
 		
-		File file = new File(path);
+		File file = file(path);
 		if(file.isDirectory()) {
 			return file.listFiles();
 		}
 		throw new UtilException(StrUtil.format("Path [{}] is not directory!", path));
+	}
+	
+	/**
+	 * 递归遍历目录以及子目录中的所有文件
+	 * 
+	 * @param file 当前遍历文件
+	 * @param fileFilter 文件过滤规则对象，选择要保留的文件
+	 */
+	public static List<File> loopFiles(File file, FileFilter fileFilter) {
+		List<File> fileList = new ArrayList<File>();
+		if(file == null){
+			return fileList;
+		}else if(file.exists() == false){
+			return fileList;
+		}
+		
+		if (file.isDirectory()) {
+			for (File tmp : file.listFiles()) {
+				fileList.addAll(loopFiles(tmp, fileFilter));
+			}
+		}else{
+			if(fileFilter != null && fileFilter.accept(file)){
+				fileList.add(file);
+			}
+		}
+		
+		return fileList;
+	}
+	
+	/**
+	 * 递归遍历目录以及子目录中的所有文件
+	 * 
+	 * @param file 当前遍历文件
+	 */
+	public static List<File> loopFiles(File file) {
+		return loopFiles(file, null);
 	}
 	
 	/**
@@ -111,6 +150,56 @@ public class FileUtil {
 	}
 	
 	/**
+	 * 创建File对象
+	 * @param path 文件路径
+	 * @return File
+	 */
+	public static File file(String path) {
+		if(StrUtil.isBlank(path)) {
+			throw new NullPointerException("File path is blank!");
+		}
+		return new File(path);
+	}
+	
+	/**
+	 * 创建File对象
+	 * @param parent 父目录
+	 * @param path 文件路径
+	 * @return File
+	 */
+	public static File file(String parent, String path) {
+		if(StrUtil.isBlank(path)) {
+			throw new NullPointerException("File path is blank!");
+		}
+		return new File(parent, path);
+	}
+	
+	/**
+	 * 创建File对象
+	 * @param parent 父文件对象
+	 * @param path 文件路径
+	 * @return File
+	 */
+	public static File file(File parent, String path) {
+		if(StrUtil.isBlank(path)) {
+			throw new NullPointerException("File path is blank!");
+		}
+		return new File(parent, path);
+	}
+	
+	/**
+	 * 创建File对象
+	 * @param uri 文件URI
+	 * @return File
+	 */
+	public static File file(URI uri) {
+		if(uri == null) {
+			throw new NullPointerException("File uri is null!");
+		}
+		return new File(uri);
+	}
+	
+	/**
 	 * 创建文件，如果这个文件存在，直接返回这个文件
 	 * @param fullFilePath 文件的全路径，使用POSIX风格
 	 * @return 文件，若路径为null，返回null
@@ -120,10 +209,24 @@ public class FileUtil {
 		if(fullFilePath == null) {
 			return null;
 		}
-		File file = new File(fullFilePath);
+		return touch(file(fullFilePath));
+	}
+	
+	/**
+	 * 创建文件，如果这个文件存在，直接返回这个文件
+	 * @param file 文件对象
+	 * @return 文件，若路径为null，返回null
+	 * @throws IOException
+	 */
+	public static File touch(File file) throws IOException {
+		if(null == file){
+			return null;
+		}
 		
 		file.getParentFile().mkdirs();
-		if(!file.exists()) file.createNewFile();
+		if(false == file.exists()) {
+			file.createNewFile();
+		}
 		return file;
 	}
 	
@@ -134,7 +237,7 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static boolean del(String fullFileOrDirPath) throws IOException {
-		return del(new File(fullFileOrDirPath));
+		return del(file(fullFileOrDirPath));
 	}
 	
 	/**
@@ -170,8 +273,10 @@ public class FileUtil {
 		if(dirPath == null) {
 			return null;
 		}
-		File dir = new File(dirPath);
-		dir.mkdirs();
+		File dir = file(dirPath);
+		if(false == dir.exists()) {
+			dir.mkdirs();
+		}
 		return dir;
 	}
 	
@@ -317,7 +422,7 @@ public class FileUtil {
 		if(path == null) {
 			path = StrUtil.EMPTY;
 		}else {
-			path = path.replaceAll("[/\\\\]{1,}", "/");
+			path = normalize(path);
 			
 			if(path.startsWith("/") || path.matches("^[a-zA-Z]:/.*")){
 				//给定的路径已经是绝对路径了
@@ -331,6 +436,23 @@ public class FileUtil {
 		String reultPath= url != null ? url.getPath() : classLoader.getResource(StrUtil.EMPTY).getPath() + path;
 		return StrUtil.removePrefix(reultPath, PATH_FILE_PRE);
 	}
+	
+	/**
+	 * 获取标准的绝对路径
+	 * @param file 文件
+	 * @return 绝对路径
+	 */
+	public static String getAbsolutePath(File file){
+		if(file == null){
+			return null;
+		}
+		
+		try {
+			return file.getCanonicalPath();
+		} catch (IOException e) {
+			return file.getAbsolutePath();
+		}
+	}
 
 	/**
 	 * 文件是否存在
@@ -338,7 +460,7 @@ public class FileUtil {
 	 * @return 是否存在
 	 */
 	public static boolean isExist(String path){
-		return  new File(path).exists();
+		return  file(path).exists();
 	}
 	
 	/**
@@ -370,6 +492,26 @@ public class FileUtil {
 	}
 	
 	/**
+	 * 获得输入流
+	 * @param file 文件
+	 * @return 输入流
+	 * @throws FileNotFoundException
+	 */
+	public static BufferedInputStream getInputStream(File file) throws FileNotFoundException{
+		return new BufferedInputStream(new FileInputStream(file));
+	}
+	
+	/**
+	 * 获得输入流
+	 * @param path 文件路径
+	 * @return 输入流
+	 * @throws FileNotFoundException
+	 */
+	public static BufferedInputStream getInputStream(String path) throws FileNotFoundException{
+		return getInputStream(file(path));
+	}
+	
+	/**
 	 * 获得一个带缓存的写入对象
 	 * @param path 输出路径，绝对路径
 	 * @param charset 字符集
@@ -396,6 +538,16 @@ public class FileUtil {
 	public static PrintWriter getPrintWriter(String path, String charset, boolean isAppend) throws IOException {
 		return new PrintWriter(getBufferedWriter(path, charset, isAppend));
 	}
+	
+	/**
+	 * 获得一个输出流对象
+	 * @param file 文件
+	 * @return 输出流对象
+	 * @throws IOException
+	 */
+	public static BufferedOutputStream getOutputStream(File file) throws IOException {
+		return new BufferedOutputStream(new FileOutputStream(file));
+	}
 
 	/**
 	 * 获得一个输出流对象
@@ -403,8 +555,19 @@ public class FileUtil {
 	 * @return 输出流对象
 	 * @throws IOException
 	 */
-	public static OutputStream getOutputStream(String path) throws IOException {
-		return new FileOutputStream(touch(path));
+	public static BufferedOutputStream getOutputStream(String path) throws IOException {
+		return getOutputStream(touch(path));
+	}
+	
+	/**
+	 * 获得一个文件读取器
+	 * @param file 文件
+	 * @param charset 字符集
+	 * @return BufferedReader对象
+	 * @throws IOException
+	 */
+	public static BufferedReader getReader(File file, String charset) throws IOException{
+		return IoUtil.getReader(getInputStream(file), charset);
 	}
 	
 	/**
@@ -415,7 +578,7 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static BufferedReader getReader(String path, String charset) throws IOException{
-		return IoUtil.getReader(new FileInputStream(path), charset);
+		return getReader(file(path), charset);
 	}
 	
 	/**
@@ -579,7 +742,7 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static String readString(String path, String charset) throws IOException {
-		return new String(readBytes(new File(path)), charset);
+		return new String(readBytes(file(path)), charset);
 	}
 	
 	/**
@@ -764,6 +927,55 @@ public class FileUtil {
 			return true;
 		}
 		return file.lastModified() != lastModifyTime;
+	}
+	
+	/**
+	 * 修复路径<br>
+	 * 1. 统一用 / <br>
+	 * 2. 多个 / 转换为一个
+	 * @param path 原路径
+	 * @return 修复后的路径
+	 */
+	public static String normalize(String path){
+		return path.replaceAll("[/\\\\]{1,}", "/");
+	}
+	
+	/**
+	 * 获得相对子路径
+	 * @param rootDir 绝对父路径
+	 * @param filePath 文件路径
+	 * @return 相对子路径
+	 */
+	public static String subPath(String rootDir, String filePath){
+		return subPath(rootDir, file(filePath));
+	}
+	
+	/**
+	 * 获得相对子路径
+	 * @param rootDir 绝对父路径
+	 * @param file 文件
+	 * @return 相对子路径
+	 */
+	public static String subPath(String rootDir, File file){
+		if(StrUtil.isEmpty(rootDir)) {
+		}
+		
+		String subPath = null;
+		try {
+			subPath = file.getCanonicalPath();
+		} catch (IOException e) {
+			throw new UtilException(e);
+		}
+		
+		if(StrUtil.isNotEmpty(rootDir) && StrUtil.isNotEmpty(subPath)) {
+			rootDir = normalize(rootDir);
+			subPath = normalize(subPath);
+			
+			if (subPath != null && subPath.toLowerCase().startsWith(subPath.toLowerCase())) {
+				subPath = subPath.substring(rootDir.length() + 1);
+			}
+		}
+		return subPath;
 	}
 	
 	//-------------------------------------------------------------------------- Interface

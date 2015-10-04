@@ -202,7 +202,6 @@ public class VelocityUtil {
 	/**
 	 * 将Request中的数据转换为模板引擎
 	 * @param request 请求对象
-	 * @return 模板引擎
 	 */
 	public static VelocityContext parseRequest(HttpServletRequest request) {
 		VelocityContext context = new VelocityContext();

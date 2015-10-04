@@ -239,20 +239,48 @@ public class DbUtil {
 	}
 	
 	/**
-	 * 获得自增键的值
+	 * 获得自增键的值<br>
+	 * 此方法对于Oracle无效
 	 * @param ps PreparedStatement
 	 * @return 自增键的值
 	 * @throws SQLException
 	 */
-	public static Long getGeneratedKey(PreparedStatement ps) throws SQLException {
+	public static Long getGeneratedKeyOfLong(PreparedStatement ps) throws SQLException {
 		ResultSet rs = null;
 		try {
 			rs = ps.getGeneratedKeys(); 
 			Long generatedKey = null;
 			if(rs != null && rs.next()) {
-				generatedKey = rs.getLong(1);
+				try{
+					generatedKey = rs.getLong(1);
+				}catch (SQLException e){
+					//自增主键不为数字或者为Oracle的rowid，跳过
+				}
 			}
 			return generatedKey;
+		} catch (SQLException e) {
+			throw e;
+		}finally {
+			close(rs);
+		}
+	}
+	
+	/**
+	 * 获得所有主键<br>
+	 * @param ps PreparedStatement
+	 * @return 所有主键
+	 * @throws SQLException
+	 */
+	public static List<Object> getGeneratedKeys(PreparedStatement ps) throws SQLException {
+		List<Object> keys = new ArrayList<Object>();
+		ResultSet rs = null;
+		int i=1;
+		try {
+			rs = ps.getGeneratedKeys(); 
+			if(rs != null && rs.next()) {
+				keys.add(rs.getObject(i++));
+			}
+			return keys;
 		} catch (SQLException e) {
 			throw e;
 		}finally {

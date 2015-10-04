@@ -1,5 +1,7 @@
 package com.xiaoleilu.hutool;
 
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -7,8 +9,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import com.xiaoleilu.hutool.exceptions.UtilException;
 
 /**
  * 字符串工具类
@@ -463,6 +463,42 @@ public class StrUtil {
 		}
 		return sub(string, fromIndex, string.length());
 	}
+	
+	/**
+	 * 给定字符串是否被字符包围
+	 * @param str 字符串
+	 * @param prefix 前缀
+	 * @param suffix 后缀
+	 * @return 是否包围，空串不包围
+	 */
+	public static boolean isSurround(String str, String prefix, String suffix){
+		if(StrUtil.isBlank(str)){
+			return false;
+		}
+		if(str.length() < (prefix.length() + suffix.length())){
+			return false;
+		}
+		
+		return str.startsWith(prefix) && str.endsWith(suffix);
+	}
+	
+	/**
+	 * 给定字符串是否被字符包围
+	 * @param str 字符串
+	 * @param prefix 前缀
+	 * @param suffix 后缀
+	 * @return 是否包围，空串不包围
+	 */
+	public static boolean isSurround(String str, char prefix, char suffix){
+		if(StrUtil.isBlank(str)){
+			return false;
+		}
+		if(str.length() < 2){
+			return false;
+		}
+		
+		return str.charAt(0) == prefix && str.charAt(str.length() - 1) == suffix;
+	}
 
 	/**
 	 * 重复某个字符
@@ -582,7 +618,7 @@ public class StrUtil {
 	 * 编码字符串
 	 * 
 	 * @param str 字符串
-	 * @param charset 字符集
+	 * @param charset 字符集，如果此字段为空，则解码的结果取决于平台
 	 * @return 编码后的字节码
 	 */
 	public static byte[] encode(String str, String charset) {
@@ -590,6 +626,9 @@ public class StrUtil {
 			return null;
 		}
 
+		if(isBlank(charset)) {
+			return str.getBytes();
+		}
 		try {
 			return str.getBytes(charset);
 		} catch (UnsupportedEncodingException e) {
@@ -601,7 +640,7 @@ public class StrUtil {
 	 * 解码字节码
 	 * 
 	 * @param data 字符串
-	 * @param charset 字符集
+	 * @param charset 字符集，如果此字段为空，则解码的结果取决于平台
 	 * @return 解码后的字符串
 	 */
 	public static String decode(byte[] data, String charset) {
@@ -609,6 +648,9 @@ public class StrUtil {
 			return null;
 		}
 
+		if(isBlank(charset)) {
+			return new String(data);
+		}
 		try {
 			return new String(data, charset);
 		} catch (UnsupportedEncodingException e) {
@@ -837,18 +879,30 @@ public class StrUtil {
 	}
 	
 	/**
-	 * 获得字符串对应字符集的byte数组
+	 * 获得字符串对应字符集的byte数组<br>
+	 * 调用encode方法
 	 * @param str 字符串
 	 * @param charset 字符集编码
 	 * @return byte数组
 	 */
 	public static byte[] bytes(String str, String charset) {
-		if(null == str) {
-			return null;
-		}
-		if(isBlank(charset)) {
-			throw new UtilException("Empty charset !");
-		}
-		return str.getBytes(Charset.forName(charset));
+		return encode(str, charset);
+	}
+	
+	/**
+	 * 获得StringReader
+	 * @param str 字符串
+	 * @return StringReader
+	 */
+	public static StringReader getReader(String str) {
+		return new StringReader(str);
+	}
+	
+	/**
+	 * 获得StringWriter
+	 * @return StringWriter
+	 */
+	public static StringWriter getWriter() {
+		return new StringWriter();
 	}
 }
