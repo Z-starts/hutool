@@ -2,12 +2,16 @@ package com.xiaoleilu.hutool.db;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Date;
+import java.util.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 
+import com.xiaoleilu.hutool.CollectionUtil;
 import com.xiaoleilu.hutool.Conver;
 import com.xiaoleilu.hutool.InjectUtil;
 import com.xiaoleilu.hutool.StrUtil;
@@ -25,12 +29,30 @@ public class Entity extends HashMap<String, Object>{
 	private static final long serialVersionUID = -1951012511464327448L;
 	
 	//--------------------------------------------------------------- Static method start
+	/**
+	 * 创建Entity
+	 * @param tableName 表名
+	 * @return Entity
+	 */
 	public static Entity create(String tableName) {
 		return new Entity(tableName);
 	}
+	
+	/**
+	 * 将PO对象转为Entity
+	 * @param <T>
+	 * @param vo 值对象
+	 * @return Entity
+	 */
+	public static <T> Entity parse(T vo) {
+		return create(null).fromVo(vo);
+	}
 	//--------------------------------------------------------------- Static method end
 	
+	/*表名*/
 	private String tableName;
+	/*字段名列表，用于限制加入的字段的值*/
+	private List<String> fieldNames;
 	
 	//--------------------------------------------------------------- Constructor start
 	public Entity() {
@@ -61,24 +83,50 @@ public class Entity extends HashMap<String, Object>{
 		this.tableName = tableName;
 		return this;
 	}
+	
+	/**
+	 * 
+	 * @return 字段列表
+	 */
+	public List<String> getFieldNames() {
+		return fieldNames;
+	}
+	/**
+	 * 设置字段列表
+	 * @param fieldNames 字段列表
+	 */
+	public void setFieldNames(List<String> fieldNames) {
+		this.fieldNames = fieldNames;
+	}
+	
+	/**
+	 * 设置字段列表
+	 * @param fieldNames 字段列表
+	 */
+	public void setFieldNames(String... fieldNames) {
+		this.fieldNames = Arrays.asList(fieldNames);
+	}
+	
 	//--------------------------------------------------------------- Getters and Setters end
 	
 	/**
 	 * 填充Value Object对象
+	 * @param <T>
 	 * @param vo Value Object（或者POJO）
-	 * @return vo
+	 * @return Entity
 	 */
-	public <T> T fillVo(T vo) {
+	public <T> Entity fillVo(T vo) {
 		InjectUtil.injectFromMap(vo, this);
-		return vo;
+		return this;
 	}
 	
 	/**
 	 * 填充Value Object对象
 	 * @param clazz Value Object（或者POJO）的类
+	 * @param ignoreCase 是否忽略大小写
 	 * @return vo
 	 */
-	public <T> T toVo(Class<T> clazz) {
+	public <T> T toVo(Class<T> clazz, boolean ignoreCase) {
 		if(clazz == null) {
 			throw new NullPointerException("Provided Class is null!");
 		}
@@ -88,17 +136,42 @@ public class Entity extends HashMap<String, Object>{
 		} catch (Exception e) {
 			throw new UtilException(StrUtil.format("Instance Value Object [] error!", clazz.getName()));
 		}
-		InjectUtil.injectFromMap(vo, this);
+		
+		if(ignoreCase){
+			InjectUtil.injectFromMapIgnoreCase(vo, this);
+		}else{
+			InjectUtil.injectFromMap(vo, this);
+		}
+		
 		return vo;
+	}
+	
+	/**
+	 * 填充Value Object对象
+	 * @param clazz Value Object（或者POJO）的类
+	 * @return vo
+	 */
+	public <T> T toVo(Class<T> clazz) {
+		return toVo(clazz, false);
+	}
+	
+	/**
+	 * 填充Value Object对象，忽略大小写
+	 * @param clazz Value Object（或者POJO）的类
+	 * @return vo
+	 */
+	public <T> T toVoIgnoreCase(Class<T> clazz) {
+		return toVo(clazz, true);
 	}
 	
 	/**
 	 * 将值对象转换为Entity<br>
 	 * 类名会被当作表名，小写第一个字母
+	 * @param <T>
 	 * @param vo 值对象
 	 * @return 自己
 	 */
-	public Entity parse(Object vo) {
+	public <T> Entity fromVo(T vo) {
 		String tableName = vo.getClass().getSimpleName();
 		tableName = StrUtil.lowerFirst(tableName);
 		this.setTableName(tableName);
@@ -112,9 +185,19 @@ public class Entity extends HashMap<String, Object>{
 	 * 此方法用于在更新操作时避免所有字段被更新，跳过不需要更新的字段
 	 * version from 2.0.0
 	 * @param entity
+	 * @param withoutNames 不需要去除的字段名
 	 */
-	public <T extends Entity> void removeEqual(T entity) {
+	public <T extends Entity> void removeEqual(T entity, String... withoutNames) {
+		HashSet<String> withoutSet = new HashSet<String>();
+		for (String name : withoutNames) {
+			withoutSet.add(name);
+		}
+		
 		for(Entry<String, Object> entry : entity.entrySet()) {
+			if(withoutSet.contains(entry.getKey())) {
+				continue;
+			}
+			
 			final Object value = this.get(entry.getKey());
 			if(null != value && value.equals(entry.getValue())) {
 				this.remove(entry.getKey());
@@ -130,7 +213,9 @@ public class Entity extends HashMap<String, Object>{
 	 * @return 本身
 	 */
 	public Entity set(String attr, Object value) {
-		super.put(attr, value);
+		if(CollectionUtil.isEmpty(fieldNames) || fieldNames.contains(attr)){
+			super.put(attr, value);
+		}
 		return this;
 	}
 	
