@@ -12,21 +12,22 @@ import java.io.OutputStreamWriter;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 import java.util.Set;
-
-import org.slf4j.Logger;
 
 import com.xiaoleilu.hutool.Conver;
 import com.xiaoleilu.hutool.FileUtil;
-import com.xiaoleilu.hutool.Log;
 import com.xiaoleilu.hutool.ReUtil;
 import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.URLUtil;
 import com.xiaoleilu.hutool.exceptions.SettingException;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 import com.xiaoleilu.hutool.setting.AbsSetting;
 
 /**
@@ -39,10 +40,10 @@ import com.xiaoleilu.hutool.setting.AbsSetting;
  * @author xiaoleilu
  * 
  */
-public class GroupSetting extends AbsSetting{
-	private static Logger log = Log.get();
+public class BasicSetting extends AbsSetting{
+	private final static Log log = StaticLog.get();
 	
-	final Map<String, String> map = new HashMap<String, String>();
+	final Map<String, String> map = new Hashtable<String, String>();
 	
 	/** 默认字符集 */
 	public final static String DEFAULT_CHARSET = "utf8";
@@ -74,7 +75,7 @@ public class GroupSetting extends AbsSetting{
 	 * @param charset 字符集
 	 * @param isUseVariable 是否使用变量
 	 */
-	public GroupSetting(Charset charset, boolean isUseVariable) {
+	public BasicSetting(Charset charset, boolean isUseVariable) {
 		this.charset = charset;
 		this.isUseVariable = isUseVariable;
 	}
@@ -86,7 +87,7 @@ public class GroupSetting extends AbsSetting{
 	 * @param charset 字符集
 	 * @param isUseVariable 是否使用变量
 	 */
-	public GroupSetting(String pathBaseClassLoader, String charset, boolean isUseVariable) {
+	public BasicSetting(String pathBaseClassLoader, String charset, boolean isUseVariable) {
 		if(null == pathBaseClassLoader) {
 			pathBaseClassLoader = StrUtil.EMPTY;
 		}
@@ -105,7 +106,7 @@ public class GroupSetting extends AbsSetting{
 	 * @param charset 字符集
 	 * @param isUseVariable 是否使用变量
 	 */
-	public GroupSetting(File configFile, String charset, boolean isUseVariable) {
+	public BasicSetting(File configFile, String charset, boolean isUseVariable) {
 		if (configFile == null) {
 			throw new RuntimeException("Null Setting file!");
 		}
@@ -124,7 +125,7 @@ public class GroupSetting extends AbsSetting{
 	 * @param charset 字符集
 	 * @param isUseVariable 是否使用变量
 	 */
-	public GroupSetting(String path, Class<?> clazz, String charset, boolean isUseVariable) {
+	public BasicSetting(String path, Class<?> clazz, String charset, boolean isUseVariable) {
 		final URL url = URLUtil.getURL(path, clazz);
 		if(url == null) {
 			throw new RuntimeException(StrUtil.format("Can not find Setting file: [{}]", path));
@@ -139,7 +140,7 @@ public class GroupSetting extends AbsSetting{
 	 * @param charset 字符集
 	 * @param isUseVariable 是否使用变量
 	 */
-	public GroupSetting(URL url, String charset, boolean isUseVariable) {
+	public BasicSetting(URL url, String charset, boolean isUseVariable) {
 		if(url == null) {
 			throw new RuntimeException("Null url define!");
 		}
@@ -150,7 +151,7 @@ public class GroupSetting extends AbsSetting{
 	 * 构造
 	 * @param pathBaseClassLoader 相对路径（相对于当前项目的classes路径）
 	 */
-	public GroupSetting(String pathBaseClassLoader) {
+	public BasicSetting(String pathBaseClassLoader) {
 		this(pathBaseClassLoader, DEFAULT_CHARSET, false);
 	}
 	
@@ -303,11 +304,7 @@ public class GroupSetting extends AbsSetting{
 	 * @return 值
 	 */
 	public String getByGroup(String key, String group) {
-		String keyWithGroup = key;
-		if (!StrUtil.isBlank(group)) {
-			keyWithGroup = group + "." + keyWithGroup;
-		}
-		return getStr(keyWithGroup);
+		return getStr(keyWithGroup(key, group));
 	}
 	
 	//--------------------------------------------------------------- Set
@@ -397,10 +394,24 @@ public class GroupSetting extends AbsSetting{
 	}
 	
 	/**
+	 * 转换为Properties对象，原分组变为前缀
+	 * @return Properties对象
+	 */
+	public Properties toProperties(){
+		Properties properties = new Properties();
+		properties.putAll(map);
+		return properties;
+	}
+	
+	/**
 	 * @return 获得所有分组名
 	 */
 	public LinkedList<String> getGroups() {
 		return this.groups;
+	}
+	
+	public Set<Entry<String, String>> entrySet(){
+		return map.entrySet();
 	}
 
 	/*--------------------------Private Method start-------------------------------*/
@@ -421,6 +432,20 @@ public class GroupSetting extends AbsSetting{
 			}
 		}
 		return value;
+	}
+	
+	/**
+	 * 组合Key和Group，组合后为group.key
+	 * @param key
+	 * @param group
+	 * @return 组合后的KEY
+	 */
+	private static  String keyWithGroup(String key, String group){
+		String keyWithGroup = key;
+		if (!StrUtil.isBlank(group)) {
+			keyWithGroup = group + "." + keyWithGroup;
+		}
+		return keyWithGroup;
 	}
 	
 	/*--------------------------Private Method end-------------------------------*/

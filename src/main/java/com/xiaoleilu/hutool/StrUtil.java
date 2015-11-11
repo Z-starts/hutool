@@ -309,8 +309,9 @@ public class StrUtil {
 	}
 
 	/**
-	 * 切分字符串<br/>
-	 * a#b#c -> [a,b,c] a##b#c -> [a,"",b,c]
+	 * 切分字符串<br>
+	 * a#b#c -> [a,b,c] <br>
+	 * a##b#c -> [a,"",b,c]
 	 * 
 	 * @param str 被切分的字符串
 	 * @param separator 分隔符字符
@@ -356,7 +357,7 @@ public class StrUtil {
 				sb.append(c);
 			}
 		}
-		list.add(sb.toString());
+		list.add(sb.toString());//加入尾串
 		return list;
 	}
 

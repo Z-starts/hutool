@@ -66,6 +66,26 @@ public class FileUtil {
 	}
 	
 	/**
+	 * 目录是否为空
+	 * @param file 目录
+	 * @return 是否为空，当提供非目录时，返回false
+	 */
+	public static boolean isEmpty(File file) {
+		if(null == file){
+			return true;
+		}
+		
+		if(file.isDirectory()){
+			String[] subFiles = file.list();
+			if(CollectionUtil.isEmpty(subFiles)){
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * 递归遍历目录以及子目录中的所有文件
 	 * 
 	 * @param file 当前遍历文件
@@ -520,10 +540,24 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static BufferedWriter getBufferedWriter(String path, String charset, boolean isAppend) throws IOException {
+		return getBufferedWriter(touch(path), charset, isAppend);
+	}
+	
+	/**
+	 * 获得一个带缓存的写入对象
+	 * @param file 输出文件
+	 * @param charset 字符集
+	 * @param isAppend 是否追加
+	 * @return BufferedReader对象
+	 * @throws IOException
+	 */
+	public static BufferedWriter getBufferedWriter(File file, String charset, boolean isAppend) throws IOException {
+		if(false == file.exists()){
+			file.createNewFile();
+		}
 		return new BufferedWriter(
 					new OutputStreamWriter(
-							new FileOutputStream(touch(path), isAppend), charset
-					)
+							new FileOutputStream(file, isAppend), charset)
 		);
 	}
 	
@@ -537,6 +571,18 @@ public class FileUtil {
 	 */
 	public static PrintWriter getPrintWriter(String path, String charset, boolean isAppend) throws IOException {
 		return new PrintWriter(getBufferedWriter(path, charset, isAppend));
+	}
+	
+	/**
+	 * 获得一个打印写入对象，可以有print
+	 * @param file 文件
+	 * @param charset 字符集
+	 * @param isAppend 是否追加
+	 * @return 打印对象
+	 * @throws IOException
+	 */
+	public static PrintWriter getPrintWriter(File file, String charset, boolean isAppend) throws IOException {
+		return new PrintWriter(getBufferedWriter(file, charset, isAppend));
 	}
 	
 	/**
@@ -590,9 +636,21 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static <T extends Collection<String>> T readLines(String path, String charset, T collection) throws IOException{
+		return readLines(file(path), charset, collection);
+	}
+	
+	/**
+	 * 从文件中读取每一行数据
+	 * @param file	文件路径
+	 * @param charset	字符集
+	 * @param collection	集合
+	 * @return	文件中的每行内容的集合
+	 * @throws IOException
+	 */
+	public static <T extends Collection<String>> T readLines(File file, String charset, T collection) throws IOException{
 		BufferedReader reader = null;
 		try {
-			reader = getReader(path, charset);
+			reader = getReader(file, charset);
 			String line;
 			while(true){
 				line = reader.readLine();
@@ -643,6 +701,17 @@ public class FileUtil {
 	 */
 	public static List<String> readLines(String path, String charset) throws IOException {
 		return readLines(path, charset, new ArrayList<String>());
+	}
+	
+	/**
+	 * 从文件中读取每一行数据
+	 * @param file	文件
+	 * @param charset	字符集
+	 * @return	文件中的每行内容的集合List
+	 * @throws IOException
+	 */
+	public static List<String> readLines(File file, String charset) throws IOException {
+		return readLines(file, charset, new ArrayList<String>());
 	}
 	
 	/**
@@ -705,16 +774,29 @@ public class FileUtil {
 	 * @param content 写入的内容
 	 * @param path 文件路径
 	 * @param charset 字符集
+	 * @return 写入的文件
 	 * @throws IOException
 	 */
-	public static void writeString(String content, String path, String charset) throws IOException {
+	public static File writeString(String content, String path, String charset) throws IOException {
+		return writeString(content, touch(path), charset);
+	}
+	
+	/**
+	 * 将String写入文件，覆盖模式
+	 * @param content 写入的内容
+	 * @param file 文件
+	 * @param charset 字符集
+	 * @throws IOException
+	 */
+	public static File writeString(String content, File file, String charset) throws IOException {
 		PrintWriter writer = null;
 		try {
-			writer = getPrintWriter(path, charset, false);
+			writer = getPrintWriter(file, charset, false);
 			writer.print(content);
 		}finally {
 			close(writer);
 		}
+		return file;
 	}
 	
 	/**
@@ -722,16 +804,41 @@ public class FileUtil {
 	 * @param content 写入的内容
 	 * @param path 文件路径
 	 * @param charset 字符集
+	 * @return 写入的文件
 	 * @throws IOException
 	 */
-	public static void appendString(String content, String path, String charset) throws IOException {
+	public static File appendString(String content, String path, String charset) throws IOException {
+		return appendString(content, touch(path), charset);
+	}
+	
+	/**
+	 * 将String写入文件，追加模式
+	 * @param content 写入的内容
+	 * @param file 文件
+	 * @param charset 字符集
+	 * @return 写入的文件
+	 * @throws IOException
+	 */
+	public static File appendString(String content, File file, String charset) throws IOException {
 		PrintWriter writer = null;
 		try {
-			writer = getPrintWriter(path, charset, true);
+			writer = getPrintWriter(file, charset, true);
 			writer.print(content);
 		}finally {
 			close(writer);
 		}
+		return file;
+	}
+	
+	/**
+	 * 读取文件内容
+	 * @param file 文件
+	 * @param charset 字符集
+	 * @return 内容
+	 * @throws IOException
+	 */
+	public static String readString(File file, String charset) throws IOException {
+		return new String(readBytes(file), charset);
 	}
 	
 	/**
@@ -742,7 +849,7 @@ public class FileUtil {
 	 * @throws IOException
 	 */
 	public static String readString(String path, String charset) throws IOException {
-		return new String(readBytes(file(path)), charset);
+		return readString(file(path), charset);
 	}
 	
 	/**

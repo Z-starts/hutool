@@ -9,13 +9,13 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.slf4j.Logger;
-
-import com.xiaoleilu.hutool.Log;
 import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.db.dialect.DialectFactory;
 import com.xiaoleilu.hutool.db.handler.RsHandler;
+import com.xiaoleilu.hutool.db.sql.SqlExecutor;
 import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 
 /**
  * 数据库SQL执行会话<br>
@@ -25,7 +25,7 @@ import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
  *
  */
 public class Session implements Closeable{
-	private final static Logger log = Log.get();
+	private final static Log log = StaticLog.get();
 	
 	private Connection conn = null;
 	private SqlConnRunner runner = null;
@@ -143,12 +143,12 @@ public class Session implements Closeable{
 		try {
 			conn.rollback();
 		} catch (Exception e) {
-			Log.error(log, e);
+			log.error(e);
 		}finally {
 			try {
 				conn.setAutoCommit(true);	//事务结束，恢复自动提交
 			} catch (SQLException e) {
-				Log.error(log, e);
+				log.error(e);
 			}
 		}
 	}
@@ -181,12 +181,12 @@ public class Session implements Closeable{
 		try {
 			conn.rollback(savepoint);
 		} catch (Exception e) {
-			Log.error(log, e);
+			log.error(e);
 		}finally {
 			try {
 				conn.setAutoCommit(true);	//事务结束，恢复自动提交
 			} catch (SQLException e) {
-				Log.error(log, e);
+				log.error(e);
 			}
 		}
 	}
@@ -295,6 +295,16 @@ public class Session implements Closeable{
 	}
 	
 	/**
+	 * 批量插入数据
+	 * @param records 记录列表
+	 * @return 插入行数
+	 * @throws SQLException
+	 */
+	public int[] insert(Collection<Entity> records) throws SQLException {
+		return runner.insert(conn, records);
+	}
+	
+	/**
 	 * 插入数据
 	 * @param record 记录
 	 * @return 主键列表
@@ -348,6 +358,16 @@ public class Session implements Closeable{
 	}
 	
 	/**
+	 * 结果的条目数
+	 * @param where 查询条件
+	 * @return 复合条件的结果数
+	 * @throws SQLException
+	 */
+	public int count(Entity where) throws SQLException {
+		return runner.count(conn, where);
+	}
+	
+	/**
 	 * 分页查询<br/>
 	 * 
 	 * @param fields 返回的字段列表，null则返回所有字段
@@ -363,13 +383,56 @@ public class Session implements Closeable{
 	}
 	
 	/**
-	 * 结果的条目数
-	 * @param where 查询条件
-	 * @return 复合条件的结果数
+	 * 分页查询<br/>
+	 * 
+	 * @param fields 返回的字段列表，null则返回所有字段
+	 * @param where 条件实体类（包含表名）
+	 * @param page 分页对象
+	 * @param rsh 结果集处理对象
+	 * @return 结果对象
 	 * @throws SQLException
 	 */
-	public int count(Entity where) throws SQLException {
-		return runner.count(conn, where);
+	public <T> T page(Collection<String> fields, Entity where, Page page, RsHandler<T> rsh) throws SQLException {
+		return runner.page(conn, fields, where, page, rsh);
+	}
+	
+	/**
+	 * 分页查询<br/>
+	 * 
+	 * @param fields 返回的字段列表，null则返回所有字段
+	 * @param where 条件实体类（包含表名）
+	 * @param page 页码
+	 * @param numPerPage 每页条目数
+	 * @return 结果对象
+	 * @throws SQLException
+	 */
+	public PageResult<Entity> page(Collection<String> fields, Entity where, int page, int numPerPage) throws SQLException {
+		return runner.page(conn, fields, where, page, numPerPage);
+	}
+	
+	/**
+	 * 分页查询<br/>
+	 * 
+	 * @param fields 返回的字段列表，null则返回所有字段
+	 * @param where 条件实体类（包含表名）
+	 * @param page 页码
+	 * @return 结果对象
+	 * @throws SQLException
+	 */
+	public PageResult<Entity> page(Collection<String> fields, Entity where, Page page) throws SQLException {
+		return runner.page(conn, fields, where, page);
+	}
+	
+	/**
+	 * 分页查询<br/>
+	 * 
+	 * @param where 条件实体类（包含表名）
+	 * @param page 页码
+	 * @return 结果对象
+	 * @throws SQLException
+	 */
+	public PageResult<Entity> page(Entity where, Page page) throws SQLException {
+		return runner.page(conn, where, page);
 	}
 	//---------------------------------------------------------------------------- CRUD end
 	

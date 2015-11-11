@@ -1,4 +1,4 @@
-package com.xiaoleilu.hutool.db;
+package com.xiaoleilu.hutool.db.sql;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,7 +8,11 @@ import java.util.Map.Entry;
 
 import com.xiaoleilu.hutool.CollectionUtil;
 import com.xiaoleilu.hutool.StrUtil;
+import com.xiaoleilu.hutool.db.DbUtil;
+import com.xiaoleilu.hutool.db.Entity;
 import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 
 /**
  * SQL构建器<br>
@@ -19,6 +23,7 @@ import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
  *
  */
 public class SqlBuilder {
+	private final static Log log = StaticLog.get();
 	
 	//--------------------------------------------------------------- Static methods start
 	/**
@@ -57,7 +62,7 @@ public class SqlBuilder {
 	 * @author Looly
 	 *
 	 */
-	public static enum Order{
+	public static enum Direction{
 		/** 升序 */
 		ASC,
 		/** 降序 */
@@ -309,22 +314,35 @@ public class SqlBuilder {
 	
 	/**
 	 * 排序
-	 * @param order 排序方式（升序还是降序）
-	 * @param fields 按照哪个字段排序
+	 * @param order 排序对象
 	 * @return 自己
 	 */
-	public SqlBuilder orderBy(Order order, String... fields){
+	public SqlBuilder orderBy(Order order){
+		Collection<String> fields = order.getOrderFields();
 		if(CollectionUtil.isNotEmpty(fields)) {
 			if(null != wrapper) {
 				//包装字段名
 				fields = wrapper.wrap(fields);
 			}
 			
-			sql.append(" ORDER BY ").append(CollectionUtil.join(fields, StrUtil.COMMA)).append(StrUtil.SPACE)
-			.append(null == order ? StrUtil.EMPTY : order);
+			sql.append(" ORDER BY ").append(CollectionUtil.join(fields, StrUtil.COMMA)).append(StrUtil.SPACE);
+			final Direction direction = order.getDirection();
+			if(null != direction){
+				sql.append(direction);
+			}
 		}
 		
 		return this;
+	}
+	
+	/**
+	 * 排序
+	 * @param direction 排序方式（升序还是降序）
+	 * @param orderFields 按照哪个字段排序
+	 * @return 自己
+	 */
+	public SqlBuilder orderBy(Direction direction, String... orderFields){
+		return this.orderBy(new Order(direction, orderFields));
 	}
 	
 	/**
@@ -407,7 +425,20 @@ public class SqlBuilder {
 	 * @return 构建好的SQL语句
 	 */
 	public String build(){
-		return this.sql.toString().trim();
+		return this.build(false);
+	}
+	
+	/**
+	 * 构建
+	 * @param isShowDebugSql 显示SQL的debug日志
+	 * @return 构建好的SQL语句
+	 */
+	public String build(boolean isShowDebugSql){
+		final String sqlStr = this.sql.toString().trim();
+		if(isShowDebugSql){
+			log.debug("\n{}", sqlStr);
+		}
+		return sqlStr;
 	}
 	
 	@Override

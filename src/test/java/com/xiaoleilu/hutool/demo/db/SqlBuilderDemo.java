@@ -1,15 +1,14 @@
 package com.xiaoleilu.hutool.demo.db;
 
-import org.slf4j.Logger;
-
-import com.xiaoleilu.hutool.Log;
-import com.xiaoleilu.hutool.db.Condition;
 import com.xiaoleilu.hutool.db.Entity;
-import com.xiaoleilu.hutool.db.SqlBuilder;
-import com.xiaoleilu.hutool.db.SqlBuilder.Join;
-import com.xiaoleilu.hutool.db.SqlBuilder.LogicalOperator;
-import com.xiaoleilu.hutool.db.SqlBuilder.Order;
-import com.xiaoleilu.hutool.db.Wrapper;
+import com.xiaoleilu.hutool.db.sql.Condition;
+import com.xiaoleilu.hutool.db.sql.SqlBuilder;
+import com.xiaoleilu.hutool.db.sql.SqlBuilder.Direction;
+import com.xiaoleilu.hutool.db.sql.SqlBuilder.Join;
+import com.xiaoleilu.hutool.db.sql.SqlBuilder.LogicalOperator;
+import com.xiaoleilu.hutool.db.sql.Wrapper;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 
 /**
  * SQL构建器样例
@@ -17,7 +16,7 @@ import com.xiaoleilu.hutool.db.Wrapper;
  *
  */
 public class SqlBuilderDemo {
-	private final static Logger log = Log.get();
+	private final static Log log = StaticLog.get();
 	
 	public static void main(String[] args) {
 		//主要用于字段名的包装（在字段名的前后加字符，例如反引号来避免与数据库的关键字冲突）
@@ -77,7 +76,7 @@ public class SqlBuilderDemo {
 		SqlBuilder select3 = SqlBuilder.create(wrapper)
 				.select()
 				.from("User")
-				.orderBy(Order.DESC, "name");
+				.orderBy(Direction.DESC, "name");
 		log.debug("Select SQL: {}, paramValues: {}", select3.build(), select3.getParamValues());
 		
 		//build select，查询多表

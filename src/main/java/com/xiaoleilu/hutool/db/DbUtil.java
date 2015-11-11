@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -17,16 +18,16 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
-import org.slf4j.Logger;
-
-import com.xiaoleilu.hutool.Log;
 import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.db.dialect.Dialect;
 import com.xiaoleilu.hutool.db.dialect.DialectFactory;
 import com.xiaoleilu.hutool.db.meta.Column;
 import com.xiaoleilu.hutool.db.meta.Table;
+import com.xiaoleilu.hutool.db.sql.Condition;
 import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
 import com.xiaoleilu.hutool.exceptions.UtilException;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 
 /**
  * 数据库操作工具类
@@ -35,7 +36,7 @@ import com.xiaoleilu.hutool.exceptions.UtilException;
  * 
  */
 public class DbUtil {
-	private static Logger log = Log.get();
+	private final static Log log = StaticLog.get();
 
 	private DbUtil() {
 		// 非可实例化类
@@ -177,6 +178,18 @@ public class DbUtil {
 	}
 	
 	/**
+	 * 创建带有字段限制的Entity对象<br>
+	 * 此方法读取数据库中对应表的字段列表，加入到Entity中，当Entity被设置内容时，会忽略对应表字段外的所有KEY
+	 * @param ds 数据源
+	 * @param tableName 表名
+	 * @return Entity对象
+	 */
+	public static Entity createLimitedEntity(DataSource ds, String tableName){
+		String[] columnNames = getColumnNames(ds, tableName);
+		return Entity.create(tableName).setFieldNames(columnNames);
+	}
+	
+	/**
 	 * 获得表的元信息
 	 * @param ds 数据源
 	 * @param tableName 表名
@@ -208,6 +221,17 @@ public class DbUtil {
 		}
 		
 		return table;
+	}
+	
+	/**
+	 * 填充SQL的参数。
+	 * 
+	 * @param ps PreparedStatement
+	 * @param params SQL参数
+	 * @throws SQLException
+	 */
+	public static void fillParams(PreparedStatement ps, Collection<Object> params) throws SQLException {
+		fillParams(ps, params.toArray(new Object[params.size()]));
 	}
 	
 	/**

@@ -6,18 +6,21 @@ import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.slf4j.Logger;
-
 import com.alibaba.druid.pool.DruidDataSource;
-import com.xiaoleilu.hutool.Log;
 import com.xiaoleilu.hutool.db.DbUtil;
 import com.xiaoleilu.hutool.db.Entity;
+import com.xiaoleilu.hutool.db.Page;
+import com.xiaoleilu.hutool.db.PageResult;
 import com.xiaoleilu.hutool.db.Session;
-import com.xiaoleilu.hutool.db.SqlExecutor;
 import com.xiaoleilu.hutool.db.SqlRunner;
 import com.xiaoleilu.hutool.db.ds.DruidDS;
-import com.xiaoleilu.hutool.db.handler.EntityHandler;
+import com.xiaoleilu.hutool.db.handler.EntityListHandler;
 import com.xiaoleilu.hutool.db.meta.Table;
+import com.xiaoleilu.hutool.db.sql.Order;
+import com.xiaoleilu.hutool.db.sql.SqlBuilder.Direction;
+import com.xiaoleilu.hutool.db.sql.SqlExecutor;
+import com.xiaoleilu.hutool.log.Log;
+import com.xiaoleilu.hutool.log.StaticLog;
 
 /**
  * DB使用样例
@@ -26,7 +29,7 @@ import com.xiaoleilu.hutool.db.meta.Table;
  * 
  */
 public class DbDemo {
-	private final static Logger log = Log.get();
+	private final static Log log = StaticLog.get();
 
 	private static String TABLE_NAME = "test_table";
 
@@ -85,10 +88,10 @@ public class DbDemo {
 			log.info("主键：{}", generatedKey);
 
 			/* 执行查询语句，返回实体列表，一个Entity对象表示一行的数据，Entity对象是一个继承自HashMap的对象，存储的key为字段名，value为字段值 */
-			List<Entity> entityList = SqlExecutor.query(conn, "select * from " + TABLE_NAME + " where param1 = ?", new EntityHandler(), "值");
+			List<Entity> entityList = SqlExecutor.query(conn, "select * from " + TABLE_NAME + " where param1 = ?", new EntityListHandler(), "值");
 			log.info("{}", entityList);
 		} catch (SQLException e) {
-			Log.error(log, e, "SQL error!");
+			log.error(e, "SQL error!");
 		} finally {
 			DbUtil.close(conn);
 		}
@@ -121,18 +124,22 @@ public class DbDemo {
 			runner.update(entity, where);
 
 			// 查，生成SQL为 SELECT * FROM `table_name` WHERE WHERE `条件1` = ? 第一个参数为返回的字段列表，如果null则返回所有字段
-			List<Entity> entityList = runner.find(null, where, new EntityHandler());
+			List<Entity> entityList = runner.find(null, where, new EntityListHandler());
 			log.info("{}", entityList);
 
-			// 分页，注意，ANSI SQL中不支持分页！
-			List<Entity> pagedEntityList = runner.page(null, where, 0, 20, new EntityHandler());
+			// 分页
+			List<Entity> pagedEntityList = runner.page(null, where, 0, 20, new EntityListHandler());
 			log.info("{}", pagedEntityList);
+			
+			//分页，提供了Page对象满足更多的排序条件要求
+			PageResult<Entity> pageResult = runner.page(where, new Page(0, 20, new Order(Direction.DESC, "字段名")));
+			log.info("{}", pageResult);
 
 			// 满足条件的结果数，生成SQL为 SELECT count(1) FROM `table_name` WHERE WHERE `条件1` = ?
 			int count = runner.count(where);
 			log.info("count: {}", count);
 		} catch (SQLException e) {
-			Log.error(log, e, "SQL error!");
+			log.error(e, "SQL error!");
 		} finally {
 		}
 	}
@@ -155,11 +162,11 @@ public class DbDemo {
 			session.update(entity, where);
 
 			// 查，生成SQL为 SELECT * FROM `table_name` WHERE WHERE `条件1` = ? 第一个参数为返回的字段列表，如果null则返回所有字段
-			List<Entity> entityList = session.find(null, where, new EntityHandler());
+			List<Entity> entityList = session.find(null, where, new EntityListHandler());
 			log.info("{}", entityList);
 
-			// 分页，注意，ANSI SQL中不支持分页！
-			List<Entity> pagedEntityList = session.page(null, where, 0, 20, new EntityHandler());
+			// 分页
+			List<Entity> pagedEntityList = session.page(null, where, 0, 20, new EntityListHandler());
 			log.info("{}", pagedEntityList);
 
 			session.commit();
@@ -178,12 +185,12 @@ public class DbDemo {
 	private static void getTableMetaInfo(DataSource ds) {
 		// 获得当前库的所有表的表名
 		List<String> tableNames = DbUtil.getTables(ds);
-		Log.info("{}", tableNames);
+		log.info("{}", tableNames);
 
 		/*
 		 * 获得表结构 表结构封装为一个表对象，里面有Column对象表示一列，列中有列名、类型、大小、是否允许为空等信息
 		 */
 		Table table = DbUtil.getTableMeta(ds, TABLE_NAME);
-		Log.info("{}", table);
+		log.info("{}", table);
 	}
 }
