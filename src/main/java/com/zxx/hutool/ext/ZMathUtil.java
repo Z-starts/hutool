@@ -29,7 +29,8 @@ import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
-import com.xiaoleilu.hutool.MathUtil;
+import com.xiaoleilu.hutool.util.MathUtil;
+
 
 /**
  * @author zxx

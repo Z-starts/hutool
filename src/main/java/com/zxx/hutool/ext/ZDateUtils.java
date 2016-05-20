@@ -29,7 +29,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import com.xiaoleilu.hutool.DateUtil;
+import com.xiaoleilu.hutool.util.DateUtil;
+
 
 /**
  * 日期格式化工具

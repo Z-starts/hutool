@@ -8,7 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import com.xiaoleilu.hutool.DateUtil;
+import com.xiaoleilu.hutool.util.DateUtil;
 
 /**
  * 定时任务管理类

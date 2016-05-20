@@ -32,17 +32,13 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	/** 默认超时 */
 	private int timeout = -1;
 	/**存储表单数据*/
-<<<<<<< HEAD
-	protected Map<String, Object> form = new HashMap<String, Object>();
-=======
 	protected Map<String, Object> form;
 	/** 文件表单对象，用于文件上传 */
 	protected Map<String, File> fileForm;
->>>>>>> hutool/master
-	
+
 	/** 连接对象 */
 	private HttpConnection httpConnection;
-	
+
 	/**
 	 * 构造
 	 * @param url URL
@@ -50,7 +46,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public HttpRequest(String url) {
 		this.url = url;
 	}
-	
+
 	// ---------------------------------------------------------------- Http Method start
 	/**
 	 * 设置请求方法
@@ -61,7 +57,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		this.method = method;
 		return this;
 	}
-	
+
 	/**
 	 * POST请求
 	 * @param url URL
@@ -70,7 +66,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest post(String url) {
 		return new HttpRequest(url).method(Method.POST);
 	}
-	
+
 	/**
 	 * GET请求
 	 * @param url URL
@@ -79,7 +75,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest get(String url) {
 		return new HttpRequest(url).method(Method.GET);
 	}
-	
+
 	/**
 	 * HEAD请求
 	 * @param url URL
@@ -88,7 +84,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest head(String url) {
 		return new HttpRequest(url).method(Method.HEAD);
 	}
-	
+
 	/**
 	 * OPTIONS请求
 	 * @param url URL
@@ -97,7 +93,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest options(String url) {
 		return new HttpRequest(url).method(Method.OPTIONS);
 	}
-	
+
 	/**
 	 * PUT请求
 	 * @param url URL
@@ -106,7 +102,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest put(String url) {
 		return new HttpRequest(url).method(Method.PUT);
 	}
-	
+
 	/**
 	 * DELETE请求
 	 * @param url URL
@@ -115,7 +111,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public static HttpRequest delete(String url) {
 		return new HttpRequest(url).method(Method.DELETE);
 	}
-	
+
 	/**
 	 * TRACE请求
 	 * @param url URL
@@ -125,7 +121,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		return new HttpRequest(url).method(Method.TRACE);
 	}
 	// ---------------------------------------------------------------- Http Method end
-	
+
 	// ---------------------------------------------------------------- Http Request Header start
 	/**
 	 * 设置contentType
@@ -136,7 +132,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		header(Header.CONTENT_TYPE, contentType);
 		return this;
 	}
-	
+
 	/**
 	 * 设置是否为长连接
 	 * @param isKeepAlive 是否长连接
@@ -146,7 +142,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		header(Header.CONNECTION, isKeepAlive ? "Keep-Alive" : "Close");
 		return this;
 	}
-	
+
 	/**
 	 * @return 获取是否为长连接
 	 */
@@ -158,7 +154,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 
 		return !connection.equalsIgnoreCase("close");
 	}
-	
+
 	/**
 	 * 获取内容长度
 	 * @return String
@@ -176,7 +172,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		return this;
 	}
 	// ---------------------------------------------------------------- Http Request Header end
-	
+
 	// ---------------------------------------------------------------- Form start
 	/**
 	 * 设置表单数据<br>
@@ -185,13 +181,9 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 * @param value 值
 	 */
 	public HttpRequest form(String name, Object value) {
-<<<<<<< HEAD
-		form.put(name, Conver.toStr(value, null));
-
-=======
 		return form(name, value, this.charset);
 	}
-	
+
 	/**
 	 * 设置表单数据<br>
 	 * 自动编码数据
@@ -202,13 +194,13 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	public HttpRequest form(String name, Object value, String charset) {
 		//停用body
 		this.body =null;
-		
+
 		if(value instanceof File){
 			return this.form(name, (File)value);
 		}else if(this.form == null) {
 			form = new HashMap<String, Object>();
 		}
-		
+
 		String strValue;
 		if(value instanceof List){
 			//列表对象
@@ -220,9 +212,8 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 			//其他对象一律转换为字符串
 			strValue = Conver.toStr(value, null);
 		}
-		
+
 		form.put(HttpUtil.encode(name, charset), HttpUtil.encode(strValue, charset));
->>>>>>> hutool/master
 		return this;
 	}
 	/**
@@ -253,7 +244,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		}
 		return this;
 	}
-	
+
 	/**
 	 * 文件表单项<br>
 	 * 一旦有文件加入，表单变为multipart/form-data
@@ -265,12 +256,12 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		if(null == file){
 			return this;
 		}
-		
+
 		if(false == isKeepAlive()){
 			keepAlive(true);
 		}
 		header(Header.CONTENT_TYPE, "multipart/form-data;boundary=" + BOUNDARY);
-		
+
 		if(this.fileForm == null) {
 			fileForm = new HashMap<String, File>();
 		}
@@ -287,16 +278,15 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		return form;
 	}
 	// ---------------------------------------------------------------- Form end
-	
+
 	// ---------------------------------------------------------------- Body start
 	/**
 	 * 设置内容主体
 	 * @param body
-
 	 */
 	public HttpRequest body(String body) {
 		this.body = body;
-		this.form = null;
+		this.form = null; //当使用body时，废弃form的使用
 		contentLength(body.length());
 		return this;
 	}
@@ -311,7 +301,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		return body(StrUtil.str(content, charset));
 	}
 	// ---------------------------------------------------------------- Body end
-	
+
 	/**
 	 * 设置超时
 	 * @param milliseconds
@@ -321,50 +311,50 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		this.timeout = milliseconds;
 		return this;
 	}
-	
+
 	/**
-	 * 执行Reuqest请求 
+	 * 执行Reuqest请求
 	 * @return HttpResponse
 	 */
 	public HttpResponse execute(){
 		if(Method.GET.equals(method)){
-			this.url = HttpUtil.urlWithForm(this.url, this.form);
+			//优先使用body形式的参数，不存在使用form
+			if(StrUtil.isNotBlank(this.body)) {
+				this.url = HttpUtil.urlWithForm(this.url, this.body);
+			}else {
+				this.url = HttpUtil.urlWithForm(this.url, this.form);
+			}
 		}
-		
+
 		//初始化 connection
 		this.httpConnection = HttpConnection.create(url, method)
 				.setConnectionAndReadTimeout(timeout)
 				.header(this.headers);
-		
+
 		//发送请求
 		try {
-<<<<<<< HEAD
-			if(Method.POST.equals(method)){
-				send();
-=======
 			if(Method.POST.equals(method) || Method.PUT.equals(method)){
 				send();//发送数据
->>>>>>> hutool/master
 			} else {
 				this.httpConnection.connect();
 			}
-			
+
 		} catch (IOException e) {
 			throw new HttpException(e.getMessage(), e);
 		}
-		
+
 		// 获取响应
 		HttpResponse httpResponse = HttpResponse.readResponse(httpConnection);
-		
+
 		this.httpConnection.disconnect();
 		return httpResponse;
 	}
-	
+
 	/**
 	 * 简单验证
 	 * @param username 用户名
 	 * @param password 密码
-	 * @return
+	 * @return HttpRequest
 	 */
 	public HttpRequest basicAuth(String username, String password) {
 		final String data = username.concat(":").concat(password);
@@ -374,18 +364,13 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 
 		return this;
 	}
-	
+
 	// ---------------------------------------------------------------- Private method start
 	/**
 	 * 发送数据流
 	 * @throws IOException
 	 */
 	private void send() throws IOException {
-<<<<<<< HEAD
-		final OutputStream out = this.httpConnection.getOutputStream();
-		if(null != out){
-			IoUtil.write(out, this.charset, true, HttpUtil.toParams(this.form));
-=======
 		if(CollectionUtil.isNotEmpty(fileForm)){
 			sendMltipart();
 		}else{
@@ -399,17 +384,17 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 			IoUtil.write(this.httpConnection.getOutputStream(), this.charset, true, content);
 		}
 	}
-	
+
 	/**
 	 * 发送多组件请求（例如包含文件的表单）
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	private void sendMltipart() throws IOException{
 		contentType("multipart/form-data");//设置表单类型
-		
+
 		this.httpConnection.disableCache();
 		final OutputStream out = this.httpConnection.getOutputStream();
-		
+
 		//普通表单内容
 		if(CollectionUtil.isNotEmpty(this.form)){
 			StringBuilder builder = StrUtil.builder();
@@ -419,9 +404,8 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 				builder.append(entry.getValue());
 			}
 			IoUtil.write(out, this.charset, false, builder.toString());
->>>>>>> hutool/master
 		}
-		
+
 		//文件
 		File file;
 		for (Entry<String, File> entry : this.fileForm.entrySet()) {
@@ -432,13 +416,13 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 			IoUtil.write(out, this.charset, false, builder.toString());
 			FileUtil.writeToStream(file, out);
 		}
-		
+
 		//结尾
 		out.write(("\r\n" + BOUNDARY + "--\r\n").getBytes());
 		out.flush();
-		
+
 		IoUtil.close(out);
 	}
 	// ---------------------------------------------------------------- Private method end
-	
+
 }

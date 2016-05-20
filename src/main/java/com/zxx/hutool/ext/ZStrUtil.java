@@ -26,7 +26,8 @@ package com.zxx.hutool.ext;
 
 import java.util.UUID;
 
-import com.xiaoleilu.hutool.StrUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
+
 
 /**
  * @author zxx
