@@ -1,1 +1,19 @@
+<<<<<<< HEAD
 /target/
+=======
+# Eclipse
+.project
+.classpath
+/.settings
+
+# Maven
+/target
+
+# Gradle
+/.gradle
+/build
+
+#IDEA
+/.idea
+*.iml
+>>>>>>> hutool/master

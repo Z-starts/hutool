@@ -14,20 +14,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-import com.xiaoleilu.hutool.CollectionUtil;
-import com.xiaoleilu.hutool.Func;
-import com.xiaoleilu.hutool.StrUtil;
-import com.xiaoleilu.hutool.URLUtil;
-import com.xiaoleilu.hutool.Validator;
 import com.xiaoleilu.hutool.exceptions.HttpException;
 import com.xiaoleilu.hutool.http.ssl.DefaultTrustManager;
 import com.xiaoleilu.hutool.http.ssl.TrustAnyHostnameVerifier;
+import com.xiaoleilu.hutool.lang.Validator;
 import com.xiaoleilu.hutool.log.Log;
 import com.xiaoleilu.hutool.log.StaticLog;
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.ObjectUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
+import com.xiaoleilu.hutool.util.URLUtil;
 
 /**
  * http连接对象
@@ -42,6 +43,10 @@ public class HttpConnection {
 	/** method请求方法 */
 	private Method method;
 	private HttpURLConnection conn;
+	
+	// for https
+	private HostnameVerifier hostnameVerifier;
+	private TrustManager[] trustManagers;
 	
 	/**
 	 * 创建HttpConnection
@@ -69,7 +74,7 @@ public class HttpConnection {
 		}
 		
 		this.url = URLUtil.url(urlStr);
-		this.method = Func.isNull(method) ? Method.GET : method;
+		this.method = ObjectUtil.isNull(method) ? Method.GET : method;
 
 		try {
 			this.conn = HttpUtil.isHttps(urlStr) ? openHttps() : openHttp();
@@ -103,6 +108,7 @@ public class HttpConnection {
 
 		// default header
 		header(Header.ACCEPT, "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", true);
+		header(Header.ACCEPT_ENCODING, "gzip", true);
 		header(Header.CONTENT_TYPE, "application/x-www-form-urlencoded", true);
 		header(Header.USER_AGENT, "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0 Hutool", true);
 		//Cookie
@@ -128,6 +134,27 @@ public class HttpConnection {
 	 */
 	public void setMethod(Method method) {
 		this.method = method;
+	}
+	
+	/**
+	 * 设置域名验证器<br>
+	 * 只针对HTTPS请求，如果不设置，不做验证，所有域名被信任
+	 * 
+	 * @param hostnameVerifier HostnameVerifier
+	 */
+	public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
+		// 验证域
+		this.hostnameVerifier = hostnameVerifier;
+	}
+	
+	/**
+	 * 设置信任信息
+	 * @param trustManagers TrustManager列表
+	 */
+	public void setTrustManagers(TrustManager... trustManagers){
+		if(CollectionUtil.isNotEmpty(trustManagers)){
+			this.trustManagers = trustManagers;
+		}
 	}
 
 	/**
@@ -241,6 +268,14 @@ public class HttpConnection {
 		return this.conn.getHeaderFields();
 	}
 	// ---------------------------------------------------------------- Headers end
+	/**
+	 * 关闭缓存
+	 * @return HttpConnection
+	 */
+	public HttpConnection disableCache(){
+		this.conn.setUseCaches(false);
+		return this;
+	}
 	
 	/**
 	 * 设置连接超时
@@ -343,7 +378,19 @@ public class HttpConnection {
 		}
 		return null;
 	}
-
+	
+	/**
+	 * 当返回错误代码时，获得错误内容流
+	 * @return 错误内容
+	 * @throws IOException
+	 */
+	public InputStream getErrorStream() throws IOException{
+		if (null != this.conn) {
+			return this.conn.getErrorStream();
+		}
+		return null;
+	}
+	
 	/**
 	 * 获取输出流对象
 	 * 输出流对象用于发送数据
@@ -351,10 +398,10 @@ public class HttpConnection {
 	 * @throws IOException
 	 */
 	public OutputStream getOutputStream() throws IOException {
-		if (null != this.conn) {
-			return this.conn.getOutputStream();
+		if (null == this.conn) {
+			throw new IOException("HttpURLConnection has not been initialized.");
 		}
-		return null;
+		return this.conn.getOutputStream();
 	}
 
 	/**
@@ -393,10 +440,11 @@ public class HttpConnection {
 		final HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
 
 		// 验证域
-		httpsURLConnection.setHostnameVerifier(new TrustAnyHostnameVerifier());
+		httpsURLConnection.setHostnameVerifier(null != this.hostnameVerifier ? this.hostnameVerifier : new TrustAnyHostnameVerifier());
 
 		SSLContext sslContext = SSLContext.getInstance("TLS");
-		sslContext.init(null, new TrustManager[] { new DefaultTrustManager() }, new SecureRandom());
+		final TrustManager[] trustManagers = CollectionUtil.isNotEmpty(this.trustManagers) ? this.trustManagers : new TrustManager[] { new DefaultTrustManager() };
+		sslContext.init(null, trustManagers, new SecureRandom());
 		httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
 		
 		return httpsURLConnection;

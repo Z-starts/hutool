@@ -1,6 +1,6 @@
 package com.xiaoleilu.hutool.exceptions;
 
-import com.xiaoleilu.hutool.StrUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * 数据库异常
@@ -10,7 +10,7 @@ public class DbRuntimeException extends RuntimeException{
 	private static final long serialVersionUID = 3624487785708765623L;
 
 	public DbRuntimeException(Throwable e) {
-		super(e.getMessage(), e);
+		super(ExceptionUtil.getMessage(e), e);
 	}
 	
 	public DbRuntimeException(String message) {

@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.db.DbUtil;
 import com.xiaoleilu.hutool.db.Entity;
 import com.xiaoleilu.hutool.db.Page;
@@ -18,6 +17,7 @@ import com.xiaoleilu.hutool.db.sql.SqlBuilder;
 import com.xiaoleilu.hutool.db.sql.Wrapper;
 import com.xiaoleilu.hutool.db.sql.SqlBuilder.LogicalOperator;
 import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * ANSI SQL 方言
@@ -27,6 +27,17 @@ import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
 public class AnsiSqlDialect implements Dialect {
 	
 	protected Wrapper wrapper = new Wrapper();
+	
+	@Override
+	public Wrapper getWrapper() {
+		return this.wrapper;
+	}
+
+	@Override
+	public void setWrapper(Wrapper wrapper) {
+		this.wrapper = wrapper;
+	}
+	
 
 	@Override
 	public PreparedStatement psForInsert(Connection conn, Entity entity) throws SQLException {
@@ -87,20 +98,15 @@ public class AnsiSqlDialect implements Dialect {
 	}
 
 	@Override
-	public PreparedStatement psForPage(Connection conn, Collection<String> fields, Entity where, int page, int numPerPage) throws SQLException {
-		return psForPage(conn, fields, where, new Page(page, numPerPage));
-	}
-	
-	@Override
 	public PreparedStatement psForPage(Connection conn, Collection<String> fields, Entity where, Page page) throws SQLException {
 		final SqlBuilder find = SqlBuilder.create(wrapper)
 				.select(fields)
 				.from(where.getTableName())
 				.where(LogicalOperator.AND, DbUtil.buildConditions(where));
 		
-		final Order order = page.getOrder();
-		if(null != order){
-			find.orderBy(order);
+		final Order[] orders = page.getOrders();
+		if(null != orders){
+			find.orderBy(orders);
 		}
 		
 		//limit  A  offset  B 表示：A就是你需要多少行，B就是查询的起点位置。

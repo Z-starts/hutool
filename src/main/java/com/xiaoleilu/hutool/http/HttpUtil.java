@@ -1,9 +1,10 @@
 package com.xiaoleilu.hutool.http;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -15,13 +16,22 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 
+<<<<<<< HEAD
 import com.xiaoleilu.hutool.CollectionUtil;
 import com.xiaoleilu.hutool.IoUtil;
 import com.xiaoleilu.hutool.ReUtil;
 import com.xiaoleilu.hutool.StrUtil;
+=======
+>>>>>>> hutool/master
 import com.xiaoleilu.hutool.exceptions.UtilException;
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.FileUtil;
+import com.xiaoleilu.hutool.util.IoUtil;
+import com.xiaoleilu.hutool.util.ReUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * Http请求工具类
@@ -68,25 +78,33 @@ public class HttpUtil {
 	}
 
 	/**
-	 * 获取客户端IP
+	 * 获取客户端IP<br>
+	 * 默认检测的Header：<br>
+	 * 1、X-Forwarded-For<br>
+	 * 2、X-Real-IP<br>
+	 * 3、Proxy-Client-IP<br>
+	 * 4、WL-Proxy-Client-IP<br>
+	 * otherHeaderNames参数用于自定义检测的Header
 	 * 
 	 * @param request 请求对象
+	 * @param otherHeaderNames 其他自定义头文件
 	 * @return IP地址
 	 */
-	public static String getClientIP(javax.servlet.http.HttpServletRequest request) {
-		String ip = request.getHeader("X-Forwarded-For");
-		if (isUnknow(ip)) {
-			ip = request.getHeader("Proxy-Client-IP");
+	public static String getClientIP(javax.servlet.http.HttpServletRequest request, String... otherHeaderNames) {
+		String[] headers = new String[]{"X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP"};
+		if(CollectionUtil.isNotEmpty(otherHeaderNames)){
+			headers = CollectionUtil.addAll(headers, otherHeaderNames);
 		}
-		if (isUnknow(ip)) {
-			ip = request.getHeader("WL-Proxy-Client-IP");
+		
+		String ip;
+		for (String header : headers) {
+			ip = request.getHeader(header);
+			if(false == isUnknow(ip)){
+				return getMultistageReverseProxyIp(ip);
+			}
 		}
-		if (isUnknow(ip)) {
-			ip = request.getHeader("X-Real-IP");
-		}
-		if (isUnknow(ip)) {
-			ip = request.getRemoteAddr();
-		}
+		
+		ip = request.getRemoteAddr();
 		return getMultistageReverseProxyIp(ip);
 	}
 	
@@ -111,7 +129,18 @@ public class HttpUtil {
 	public static String get(String urlString, String customCharset) throws IOException {
 		return HttpRequest.get(urlString).charset(customCharset).execute().body();
 	}
-
+	
+	/**
+	 * 发送get请求
+	 * 
+	 * @param urlString 网址
+	 * @return 返回内容，如果只检查状态码，正常只返回 ""，不正常返回 null
+	 * @throws IOException
+	 */
+	public static String get(String urlString) throws IOException {
+		return HttpRequest.get(urlString).execute().body();
+	}
+	
 	/**
 	 * 发送post请求
 	 * 
@@ -170,8 +199,39 @@ public class HttpUtil {
 	 * @throws IOException
 	 */
 	public static String downloadString(String url, String customCharset) throws IOException {
+<<<<<<< HEAD
 		InputStream inputStream = new URL(url).openStream();
 		return IoUtil.getString(inputStream, customCharset);
+=======
+		InputStream in = null;
+		try {
+			in = new URL(url).openStream();
+			return IoUtil.read(in, customCharset);
+		} finally {
+			IoUtil.close(in);
+		}
+	}
+	
+	/**
+	 * 获得远程String
+	 * 
+	 * @param url 请求的url
+	 * @param destFile 目标文件
+	 * @return 文件大小
+	 * @throws IOException
+	 */
+	public static long downloadFile(String url, File destFile) throws IOException {
+		InputStream in = null;
+		OutputStream out = null;
+		try {
+			in = new URL(url).openStream();
+			out = FileUtil.getOutputStream(destFile);
+			return IoUtil.copy(in, out);
+		} finally {
+			IoUtil.close(in);
+			IoUtil.close(out);
+		}
+>>>>>>> hutool/master
 	}
 
 	/**
@@ -185,6 +245,32 @@ public class HttpUtil {
 			return StrUtil.EMPTY;
 		}
 		return CollectionUtil.join(paramMap.entrySet(), "&");
+	}
+	
+	/**
+	 * 将Map形式的Form表单数据转换为Url参数形式<br>
+	 * 编码键和值对
+	 * 
+	 * @param paramMap 表单数据
+	 * @param charset 编码
+	 * @return url参数
+	 */
+	public static String toParams(Map<String, Object> paramMap, String charset) {
+		if(CollectionUtil.isEmpty(paramMap)){
+			return StrUtil.EMPTY;
+		}
+		
+		StringBuilder sb = new StringBuilder();
+		boolean isFirst = true;
+		for (Entry<String, Object> item : paramMap.entrySet()) {
+			if (isFirst) {
+				isFirst = false;
+			} else {
+				sb.append("&");
+			}
+			sb.append(encode(item.getKey(), charset)).append("=").append(encode(item.getValue().toString(), charset));
+		}
+		return sb.toString();
 	}
 
 	/**
@@ -315,7 +401,7 @@ public class HttpUtil {
 	 * @return 是否未知
 	 */
 	public static boolean isUnknow(String checkString) {
-		return StrUtil.isBlank(checkString) || Header.UNKNOW.toString().equalsIgnoreCase(checkString);
+		return StrUtil.isBlank(checkString) || "unknown".equalsIgnoreCase(checkString);
 	}
 	
 	/**
@@ -326,21 +412,24 @@ public class HttpUtil {
 	 * @return 内容
 	 * @throws IOException
 	 */
+	@SuppressWarnings("resource")
 	public static String getString(InputStream in, String charset, boolean isGetCharsetFromContent) throws IOException {
+		if(false == isGetCharsetFromContent){
+			return IoUtil.read(in, charset);
+		}
+		
 		StringBuilder content = new StringBuilder(); // 存储返回的内容
 		
 		// 从返回的内容中读取所需内容
-		BufferedReader reader = new BufferedReader(new InputStreamReader(in, charset));
+		BufferedReader reader = IoUtil.getReader(in, charset);
 		String line = null;
 		while ((line = reader.readLine()) != null) {
 			content.append(line).append('\n');
-			if (isGetCharsetFromContent) {
-				String charsetInContent = ReUtil.get(CHARSET_PATTERN, line, 1);
-				if (StrUtil.isBlank(charsetInContent) == false) {
-					charset = charsetInContent;
-					reader = new BufferedReader(new InputStreamReader(in, charset));
-					isGetCharsetFromContent = false;
-				}
+			String charsetInContent = ReUtil.get(CHARSET_PATTERN, line, 1);
+			if (StrUtil.isNotBlank(charsetInContent)) {
+				charset = charsetInContent;
+				reader = IoUtil.getReader(in, charset);
+				isGetCharsetFromContent = false;
 			}
 		}
 		

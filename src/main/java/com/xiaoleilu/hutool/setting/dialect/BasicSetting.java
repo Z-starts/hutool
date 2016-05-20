@@ -1,34 +1,33 @@
 package com.xiaoleilu.hutool.setting.dialect;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.lang.reflect.Method;
+import java.io.Writer;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-import com.xiaoleilu.hutool.Conver;
-import com.xiaoleilu.hutool.FileUtil;
-import com.xiaoleilu.hutool.ReUtil;
-import com.xiaoleilu.hutool.StrUtil;
-import com.xiaoleilu.hutool.URLUtil;
-import com.xiaoleilu.hutool.exceptions.SettingException;
 import com.xiaoleilu.hutool.log.Log;
 import com.xiaoleilu.hutool.log.StaticLog;
 import com.xiaoleilu.hutool.setting.AbsSetting;
+import com.xiaoleilu.hutool.util.BeanUtil;
+import com.xiaoleilu.hutool.util.BeanUtil.ValueProvider;
+import com.xiaoleilu.hutool.util.FileUtil;
+import com.xiaoleilu.hutool.util.IoUtil;
+import com.xiaoleilu.hutool.util.ReUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
+import com.xiaoleilu.hutool.util.URLUtil;
 
 /**
  * 分组设置工具类。 用于支持设置文件<br>
@@ -43,7 +42,7 @@ import com.xiaoleilu.hutool.setting.AbsSetting;
 public class BasicSetting extends AbsSetting{
 	private final static Log log = StaticLog.get();
 	
-	final Map<String, String> map = new Hashtable<String, String>();
+	final Map<String, String> map = new ConcurrentHashMap<String, String>();
 	
 	/** 默认字符集 */
 	public final static String DEFAULT_CHARSET = "utf8";
@@ -199,7 +198,7 @@ public class BasicSetting extends AbsSetting{
 			log.error("Load setting error!", e);
 			return false;
 		} finally {
-			FileUtil.close(settingStream);
+			IoUtil.close(settingStream);
 		}
 		return true;
 	}
@@ -264,7 +263,7 @@ public class BasicSetting extends AbsSetting{
 				map.put(key, value);
 			}
 		} finally {
-			FileUtil.close(reader);
+			IoUtil.close(reader);
 		}
 		return true;
 	}
@@ -290,12 +289,16 @@ public class BasicSetting extends AbsSetting{
 	public int size() {
 		return map.size();
 	}
-
-	@Override
-	public String getStr(String key) {
-		return map.get(key);
-	}
 	
+	@Override
+	public String getStr(String key, String defaultValue) {
+		final String value = map.get(key);
+		if(StrUtil.isBlank(value)) {
+			return defaultValue;
+		}
+		return value;
+	}
+
 	/**
 	 * 获得指定分组的键对应值
 	 * 
@@ -305,6 +308,29 @@ public class BasicSetting extends AbsSetting{
 	 */
 	public String getByGroup(String key, String group) {
 		return getStr(keyWithGroup(key, group));
+	}
+	
+	/**
+	 * 获得所有键值对
+	 * @return map
+	 */
+	public Map<String, String> getMap(){
+		return this.map;
+	}
+	
+	/**
+	 * 获得指定分组的所有键值对
+	 * @param group 分组
+	 * @return map
+	 */
+	public Map<String, String> getMap(String group){
+		Map<String, String> map2 = new HashMap<String, String>();
+		for (String key : map.keySet()) {
+			if(StrUtil.isNotBlank(key) && key.startsWith(group)){
+				map2.put(key, map.get(key));
+			}
+		}
+		return map2;
 	}
 	
 	//--------------------------------------------------------------- Set
@@ -325,12 +351,11 @@ public class BasicSetting extends AbsSetting{
 	 * @param absolutePath 设置文件的绝对路径
 	 */
 	public void store(String absolutePath) {
+		Writer writer = null;
 		try {
-			FileUtil.touch(absolutePath);
-			OutputStream out = FileUtil.getOutputStream(absolutePath);
-			BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, charset));
-			Set<java.util.Map.Entry<String, String>> entrySet = map.entrySet();
-			for (java.util.Map.Entry<String, String> entry : entrySet) {
+			writer = FileUtil.getWriter(absolutePath, charset, false);
+			Set<Entry<String, String>> entrySet = map.entrySet();
+			for (Entry<String, String> entry : entrySet) {
 				writer.write(entry.getKey() + ASSIGN_FLAG + entry.getValue());
 			}
 			writer.close();
@@ -338,6 +363,8 @@ public class BasicSetting extends AbsSetting{
 			throw new RuntimeException(StrUtil.format("Can not find file [{}]!", absolutePath), e);
 		} catch (IOException e) {
 			throw new RuntimeException("Store Setting error!", e);
+		}finally{
+			IoUtil.close(writer);
 		}
 	}
 
@@ -355,42 +382,32 @@ public class BasicSetting extends AbsSetting{
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br/>
 	 * 只支持基本类型的转换
 	 * 
-	 * @param object 被调用的对象
-	 * @throws SettingException
+	 * @param bean Bean
+	 * @return Bean
 	 */
-	public void toObject(String group, Object object) throws SettingException {
-		try {
-			Method[] methods = object.getClass().getMethods();
-			for (Method method : methods) {
-				String methodName = method.getName();
-				if (methodName.startsWith("set")) {
-					String field = StrUtil.getGeneralField(methodName);
-					Object value = getByGroup(field, group);
-					if (value != null) {
-						Class<?>[] parameterTypes = method.getParameterTypes();
-						if(parameterTypes.length != 1) {
-							continue;
-						}
-						Object castedValue = Conver.parse(parameterTypes[0], value);
-						method.invoke(object, castedValue);
-						log.debug("Parse setting to object field [{}={}]", field, value);
-					}
+	public Object toBean(final String group, Object bean) {
+		return BeanUtil.fill(bean, new ValueProvider(){
+			
+			@Override
+			public Object value(String name) {
+				final String value = getByGroup(name, group);
+				if(null != value){
+					log.debug("Parse setting to object field [{}={}]", name, value);
 				}
+				return value;
 			}
-		} catch (Exception e) {
-			throw new SettingException("Parse setting to object error!", e);
-		}
+		});
 	}
 
 	/**
 	 * 将setting中的键值关系映射到对象中，原理是调用对象对应的set方法<br/>
 	 * 只支持基本类型的转换
 	 * 
-	 * @param object
-	 * @throws SettingException
+	 * @param bean Bean
+	 * @return Bean
 	 */
-	public void toObject(Object object) throws SettingException {
-		toObject(null, object);
+	public Object toBean(Object bean) {
+		return toBean(null, bean);
 	}
 	
 	/**
@@ -412,6 +429,11 @@ public class BasicSetting extends AbsSetting{
 	
 	public Set<Entry<String, String>> entrySet(){
 		return map.entrySet();
+	}
+	
+	@Override
+	public String toString() {
+		return map.toString();
 	}
 
 	/*--------------------------Private Method start-------------------------------*/

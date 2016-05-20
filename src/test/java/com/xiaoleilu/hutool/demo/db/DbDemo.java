@@ -13,7 +13,9 @@ import com.xiaoleilu.hutool.db.Page;
 import com.xiaoleilu.hutool.db.PageResult;
 import com.xiaoleilu.hutool.db.Session;
 import com.xiaoleilu.hutool.db.SqlRunner;
-import com.xiaoleilu.hutool.db.ds.DruidDS;
+import com.xiaoleilu.hutool.db.ds.SimpleDataSource;
+import com.xiaoleilu.hutool.db.ds.druid.DruidDS;
+import com.xiaoleilu.hutool.db.ds.pool.PooledDataSource;
 import com.xiaoleilu.hutool.db.handler.EntityListHandler;
 import com.xiaoleilu.hutool.db.meta.Table;
 import com.xiaoleilu.hutool.db.sql.Order;
@@ -61,11 +63,20 @@ public class DbDemo {
 		DataSource ds = DruidDS.getDataSource("test");
 
 		//当然，如果你不喜欢用DruidDS类，你也可以自己去实例化连接池的数据源 具体的配置参数请参阅Druid官方文档
+		@SuppressWarnings("resource")
 		DruidDataSource ds2 = new DruidDataSource();
 		ds2.setUrl("jdbc:mysql://fedora.vmware:3306/extractor");
 		ds2.setUsername("root");
 		ds2.setPassword("123456");
 		ds = ds2;
+		
+		//无连接池的数据源
+		SimpleDataSource ds3 = SimpleDataSource.getDataSource();
+		ds = ds3;
+		
+		//简易连接池
+		DataSource ds4 = PooledDataSource.getDataSource();
+		ds = ds4;
 
 		return ds;
 	}
@@ -132,7 +143,7 @@ public class DbDemo {
 			log.info("{}", pagedEntityList);
 			
 			//分页，提供了Page对象满足更多的排序条件要求
-			PageResult<Entity> pageResult = runner.page(where, new Page(0, 20, new Order(Direction.DESC, "字段名")));
+			PageResult<Entity> pageResult = runner.page(where, new Page(0, 20, new Order("字段名", Direction.DESC)));
 			log.info("{}", pageResult);
 
 			// 满足条件的结果数，生成SQL为 SELECT count(1) FROM `table_name` WHERE WHERE `条件1` = ?

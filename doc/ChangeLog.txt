@@ -168,3 +168,63 @@ Entity中toVo区别是否忽略大小写
 
 2.13.1
 1、FileUtil增加方法判断目录是否为空
+2、SecureUtil增加simpleUUID方法
+3、修复Map转对象的时候忽略大小写问题（InjectUtil.injectFromMap）
+4、修复LogFactory.get()栈溢出问题
+5、增加downloadFile方法 for HttpUtil
+6、扩充ZipUtil
+7、增加数据库连接池
+8、修复Http的form多类型问题
+9、修复IoUtil.copy未flush的bug
+10、Http增加文件上传
+
+2.13.2
+1、FileUtil中加入flush
+2、修复FileUtil的touch方法创建父目录空指针问题
+3、getClob Method
+4、增加转换为大写方法
+5、完善SystemUtil，并集中于system包中
+6、Http模块加入gzip支持
+7、解决IoUtil读取文本的问题
+
+2.14.0
+1、明确分类
+2、加入filter
+3、修复Crontab restart不能加载配置文件的bug
+4、扩充StrUtil
+5、Add HTMLFilter
+6、修改getLog为get
+7、增加一些工具方法
+8、增加BeanUtil
+9、增加ConsoleLog
+10、CharsetUtil调整
+11、调整BloomFilter API
+12、增加SettingDruidDatasource
+13、修复Conver
+14、对Https验证增加自定义方法
+15、抽象不同类型对象的getter方法
+
+2.15.0
+1、修复SqlBuilder中 Order不支持多字段多向排序问题
+2、增加ResourceUtil
+3、对Conver做调整
+4、对Getter增加类型
+5、修改JSON部分，抽象JSON接口
+6、正则工具类中增加空值判断
+7、规范Close函数，删除FileUtil.close()，统一使用IoUtil.close()
+8、修补JSON模块
+9、规范FileUtil中的方法名，添加utf-8默认读写方法
+10、StrUtil增加str方法，讲Object转为String
+11、修复Setting中循环引用问题
+12、修改Setting store方法
+13、增加Assert类
+14、增加Bean属性拷贝
+
+2.15.1
+1、对Setting parse 的null不打印日志
+2、对对象克隆做了强化，修复无法反射调用父类方法的问题
+3、FileUtil中某些方法返回File对象，方便操作
+4、对Db中的方法做修正
+5、修复FileUtil.loopFiles方法过滤条件为空时全部过滤问题
+6、增加startWith和endWith方法
+7、IoUtil.copy返回值使用long，防止溢出

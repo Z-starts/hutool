@@ -1,28 +1,44 @@
 package com.xiaoleilu.hutool.http;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
-import com.xiaoleilu.hutool.Conver;
-import com.xiaoleilu.hutool.IoUtil;
-import com.xiaoleilu.hutool.SecureUtil;
-import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.exceptions.HttpException;
+import com.xiaoleilu.hutool.lang.Conver;
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.FileUtil;
+import com.xiaoleilu.hutool.util.IoUtil;
+import com.xiaoleilu.hutool.util.SecureUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * http请求类
  * @author Looly
  */
 public class HttpRequest extends HttpBase<HttpRequest>{
+	private static final String BOUNDARY = "--------------------Hutool_" + SecureUtil.simpleUUID();
+	private static final String BOUNDARY_CRLF = "\r\n" + BOUNDARY +"\r\n";
+	private static final String CONTENT_DISPOSITION_TEMPLATE = "Content-Disposition: form-data; name=\"{}\"\r\n\r\n";
+	private static final String CONTENT_DISPOSITION_FILE_TEMPLATE = "Content-Disposition: form-data; name=\"{}\"; filename=\"{}\"\r\n";
+	private static final String CONTENT_TYPE_FILE_TEMPLATE = "Content-Type:{}\r\n\r\n";
 
-	protected Method method = Method.GET;
 	private String url = "";
+	private Method method = Method.GET;
 	/** 默认超时 */
 	private int timeout = -1;
 	/**存储表单数据*/
+<<<<<<< HEAD
 	protected Map<String, Object> form = new HashMap<String, Object>();
+=======
+	protected Map<String, Object> form;
+	/** 文件表单对象，用于文件上传 */
+	protected Map<String, File> fileForm;
+>>>>>>> hutool/master
 	
 	/** 连接对象 */
 	private HttpConnection httpConnection;
@@ -110,15 +126,103 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	}
 	// ---------------------------------------------------------------- Http Method end
 	
+	// ---------------------------------------------------------------- Http Request Header start
+	/**
+	 * 设置contentType
+	 * @param contentType contentType
+	 * @return HttpRequest
+	 */
+	public HttpRequest contentType(String contentType) {
+		header(Header.CONTENT_TYPE, contentType);
+		return this;
+	}
+	
+	/**
+	 * 设置是否为长连接
+	 * @param isKeepAlive 是否长连接
+	 * @return HttpRequest
+	 */
+	public HttpRequest keepAlive(boolean isKeepAlive) {
+		header(Header.CONNECTION, isKeepAlive ? "Keep-Alive" : "Close");
+		return this;
+	}
+	
+	/**
+	 * @return 获取是否为长连接
+	 */
+	public boolean isKeepAlive() {
+		String connection = header(Header.CONNECTION);
+		if (connection == null) {
+			return !httpVersion.equalsIgnoreCase(HTTP_1_0);
+		}
+
+		return !connection.equalsIgnoreCase("close");
+	}
+	
+	/**
+	 * 获取内容长度
+	 * @return String
+	 */
+	public String contentLength() {
+		return header(Header.CONTENT_LENGTH);
+	}
+	/**
+	 * 设置内容长度
+	 * @param value 长度
+	 * @return HttpRequest
+	 */
+	public HttpRequest contentLength(int value) {
+		header(Header.CONTENT_LENGTH, String.valueOf(value));
+		return this;
+	}
+	// ---------------------------------------------------------------- Http Request Header end
+	
 	// ---------------------------------------------------------------- Form start
 	/**
-	 * 设置表单数据
+	 * 设置表单数据<br>
+	 * 自动编码数据
 	 * @param name 名
 	 * @param value 值
 	 */
 	public HttpRequest form(String name, Object value) {
+<<<<<<< HEAD
 		form.put(name, Conver.toStr(value, null));
 
+=======
+		return form(name, value, this.charset);
+	}
+	
+	/**
+	 * 设置表单数据<br>
+	 * 自动编码数据
+	 * @param name 名
+	 * @param value 值
+	 * @param charset 编码
+	 */
+	public HttpRequest form(String name, Object value, String charset) {
+		//停用body
+		this.body =null;
+		
+		if(value instanceof File){
+			return this.form(name, (File)value);
+		}else if(this.form == null) {
+			form = new HashMap<String, Object>();
+		}
+		
+		String strValue;
+		if(value instanceof List){
+			//列表对象
+			strValue = CollectionUtil.join((List<?>)value, ",");
+		}else if(CollectionUtil.isArray(value)){
+			//数组对象
+			strValue = CollectionUtil.join((Object[])value, ",");
+		}else{
+			//其他对象一律转换为字符串
+			strValue = Conver.toStr(value, null);
+		}
+		
+		form.put(HttpUtil.encode(name, charset), HttpUtil.encode(strValue, charset));
+>>>>>>> hutool/master
 		return this;
 	}
 	/**
@@ -147,6 +251,31 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		for (Map.Entry<String, Object> entry : formMap.entrySet()) {
 			form(entry.getKey(), entry.getValue());
 		}
+		return this;
+	}
+	
+	/**
+	 * 文件表单项<br>
+	 * 一旦有文件加入，表单变为multipart/form-data
+	 * @param name 名
+	 * @param file 文件
+	 * @return HttpRequest
+	 */
+	public HttpRequest form(String name, File file){
+		if(null == file){
+			return this;
+		}
+		
+		if(false == isKeepAlive()){
+			keepAlive(true);
+		}
+		header(Header.CONTENT_TYPE, "multipart/form-data;boundary=" + BOUNDARY);
+		
+		if(this.fileForm == null) {
+			fileForm = new HashMap<String, File>();
+		}
+		//文件对象
+		this.fileForm.put(name, file);
 		return this;
 	}
 
@@ -178,7 +307,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 * @param contentType
 	 */
 	public HttpRequest body(byte[] content, String contentType) {
-		this.contentType(contentType);
+//		this.contentType(contentType);
 		return body(StrUtil.str(content, charset));
 	}
 	// ---------------------------------------------------------------- Body end
@@ -205,13 +334,17 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		//初始化 connection
 		this.httpConnection = HttpConnection.create(url, method)
 				.setConnectionAndReadTimeout(timeout)
-				.header(Header.CHAESET, this.charset, true)
 				.header(this.headers);
 		
 		//发送请求
 		try {
+<<<<<<< HEAD
 			if(Method.POST.equals(method)){
 				send();
+=======
+			if(Method.POST.equals(method) || Method.PUT.equals(method)){
+				send();//发送数据
+>>>>>>> hutool/master
 			} else {
 				this.httpConnection.connect();
 			}
@@ -223,12 +356,7 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 		// 获取响应
 		HttpResponse httpResponse = HttpResponse.readResponse(httpConnection);
 		
-		//关闭或保持
-		if (httpResponse.isKeepAlive() == false) {
-			this.httpConnection.disconnect();
-			this.httpConnection = null;
-		}
-		
+		this.httpConnection.disconnect();
 		return httpResponse;
 	}
 	
@@ -253,10 +381,63 @@ public class HttpRequest extends HttpBase<HttpRequest>{
 	 * @throws IOException
 	 */
 	private void send() throws IOException {
+<<<<<<< HEAD
 		final OutputStream out = this.httpConnection.getOutputStream();
 		if(null != out){
 			IoUtil.write(out, this.charset, true, HttpUtil.toParams(this.form));
+=======
+		if(CollectionUtil.isNotEmpty(fileForm)){
+			sendMltipart();
+		}else{
+			//Write的时候会优先使用body中的内容，write时自动关闭OutputStream
+			String content;
+			if(StrUtil.isNotBlank(this.body)) {
+				content = this.body;
+			}else {
+				content = HttpUtil.toParams(this.form);
+			}
+			IoUtil.write(this.httpConnection.getOutputStream(), this.charset, true, content);
 		}
+	}
+	
+	/**
+	 * 发送多组件请求（例如包含文件的表单）
+	 * @throws IOException 
+	 */
+	private void sendMltipart() throws IOException{
+		contentType("multipart/form-data");//设置表单类型
+		
+		this.httpConnection.disableCache();
+		final OutputStream out = this.httpConnection.getOutputStream();
+		
+		//普通表单内容
+		if(CollectionUtil.isNotEmpty(this.form)){
+			StringBuilder builder = StrUtil.builder();
+			for (Entry<String, Object> entry : this.form.entrySet()) {
+				builder.append(BOUNDARY_CRLF);
+				builder.append(StrUtil.format(CONTENT_DISPOSITION_TEMPLATE, entry.getKey()));
+				builder.append(entry.getValue());
+			}
+			IoUtil.write(out, this.charset, false, builder.toString());
+>>>>>>> hutool/master
+		}
+		
+		//文件
+		File file;
+		for (Entry<String, File> entry : this.fileForm.entrySet()) {
+			file = entry.getValue();
+			StringBuilder builder = StrUtil.builder().append(BOUNDARY_CRLF);
+			builder.append(StrUtil.format(CONTENT_DISPOSITION_FILE_TEMPLATE, entry.getKey(), file.getName()));
+			builder.append(StrUtil.format(CONTENT_TYPE_FILE_TEMPLATE, HttpUtil.getMimeType(file.getName())));
+			IoUtil.write(out, this.charset, false, builder.toString());
+			FileUtil.writeToStream(file, out);
+		}
+		
+		//结尾
+		out.write(("\r\n" + BOUNDARY + "--\r\n").getBytes());
+		out.flush();
+		
+		IoUtil.close(out);
 	}
 	// ---------------------------------------------------------------- Private method end
 	

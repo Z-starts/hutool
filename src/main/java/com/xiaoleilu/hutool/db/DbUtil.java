@@ -6,6 +6,7 @@ import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
@@ -18,7 +19,6 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
-import com.xiaoleilu.hutool.StrUtil;
 import com.xiaoleilu.hutool.db.dialect.Dialect;
 import com.xiaoleilu.hutool.db.dialect.DialectFactory;
 import com.xiaoleilu.hutool.db.meta.Column;
@@ -28,6 +28,9 @@ import com.xiaoleilu.hutool.exceptions.DbRuntimeException;
 import com.xiaoleilu.hutool.exceptions.UtilException;
 import com.xiaoleilu.hutool.log.Log;
 import com.xiaoleilu.hutool.log.StaticLog;
+import com.xiaoleilu.hutool.util.CharsetUtil;
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * 数据库操作工具类
@@ -45,11 +48,41 @@ public class DbUtil {
 	/**
 	 * 实例化一个新的SQL运行对象
 	 * 
+	 * @param dialect 数据源
+	 * @return SQL执行类
+	 */
+	public static SqlConnRunner newSqlConnRunner(Dialect dialect) {
+		return SqlConnRunner.create(dialect);
+	}
+	
+	/**
+	 * 实例化一个新的SQL运行对象
+	 * 
+	 * @param ds 数据源
+	 * @return SQL执行类
+	 */
+	public static SqlConnRunner newSqlConnRunner(DataSource ds) {
+		return SqlConnRunner.create(ds);
+	}
+	
+	/**
+	 * 实例化一个新的SQL运行对象
+	 * 
+	 * @param conn 数据库连接对象
+	 * @return SQL执行类
+	 */
+	public static SqlConnRunner newSqlConnRunner(Connection conn) {
+		return SqlConnRunner.create(DialectFactory.newDialect(conn));
+	}
+	
+	/**
+	 * 实例化一个新的SQL运行对象
+	 * 
 	 * @param ds 数据源
 	 * @return SQL执行类
 	 */
 	public static SqlRunner newSqlRunner(DataSource ds) {
-		return new SqlRunner(ds);
+		return SqlRunner.create(ds);
 	}
 	
 	/**
@@ -60,7 +93,25 @@ public class DbUtil {
 	 * @return SQL执行类
 	 */
 	public static SqlRunner newSqlRunner(DataSource ds, Dialect dialect) {
-		return new SqlRunner(ds, dialect);
+		return SqlRunner.create(ds, dialect);
+	}
+	
+	/**
+	 * 新建数据库会话
+	 * @param ds 数据源
+	 * @return 数据库会话
+	 */
+	public static Session newSession(DataSource ds){
+		return Session.create(ds);
+	}
+	
+	/**
+	 * 新建数据库会话
+	 * @param conn 数据库连接对象
+	 * @return 数据库会话
+	 */
+	public static Session newSession(Connection conn){
+		return Session.create(conn);
 	}
 	
 	/**
@@ -242,8 +293,8 @@ public class DbUtil {
 	 * @throws SQLException
 	 */
 	public static void fillParams(PreparedStatement ps, Object... params) throws SQLException {
-		if (params == null) {
-			return;
+		if (CollectionUtil.isEmpty(params)) {
+			return;//无参数
 		}
 		ParameterMetaData pmd = ps.getParameterMetaData();
 		for (int i = 0; i < params.length; i++) {
@@ -437,6 +488,15 @@ public class DbUtil {
 		if(entity.isEmpty()) {
 			throw new DbRuntimeException("No filed and value in this entity !");
 		}
+	}
+	
+	/**
+	 * 将RowId转为字符串
+	 * @param rowId RowId
+	 * @return RowId字符串
+	 */
+	public static String rowIdToString(RowId rowId){
+		return StrUtil.str(rowId.getBytes(), CharsetUtil.CHARSET_ISO_8859_1);
 	}
 	//---------------------------------------------------------------------------- Private method start
 	//---------------------------------------------------------------------------- Private method end

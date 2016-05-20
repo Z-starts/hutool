@@ -1,15 +1,15 @@
 package com.xiaoleilu.hutool.http;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.xiaoleilu.hutool.CharsetUtil;
-import com.xiaoleilu.hutool.CollectionUtil;
-import com.xiaoleilu.hutool.StrUtil;
+import com.xiaoleilu.hutool.util.CharsetUtil;
+import com.xiaoleilu.hutool.util.CollectionUtil;
+import com.xiaoleilu.hutool.util.StrUtil;
 
 /**
  * http基类
@@ -30,8 +30,6 @@ public abstract class HttpBase<T> {
 	protected String charset = CharsetUtil.UTF_8;
 	/**http版本*/
 	protected String httpVersion = HTTP_1_1;
-	/**mediaType*/
-	protected String mediaType;
 	/**存储主体*/
 	protected String body;
 	
@@ -91,8 +89,10 @@ public abstract class HttpBase<T> {
 	public T header(String name, String value, boolean isOverride) {
 		if(null != name && null != value){
 			final List<String> values = headers.get(name.trim());
-			if(CollectionUtil.isEmpty(values)) {
-				headers.put(name.trim(), Arrays.asList(value.trim()));
+			if(isOverride || CollectionUtil.isEmpty(values)) {
+				final ArrayList<String> valueList = new ArrayList<String>();
+				valueList.add(value);
+				headers.put(name.trim(), valueList);
 			}else {
 				values.add(value.trim());
 			}
@@ -194,145 +194,6 @@ public abstract class HttpBase<T> {
 	 */
 	public T charset(String charset) {
 		this.charset = null;
-		contentType(null, charset);
-		return (T) this;
-	}
-
-	/**
-	 * 获取mediaType
-	 * @return String
-	 */
-	public String mediaType() {
-		return mediaType;
-	}
-	/**
-	 * 设置mediaType
-	 * @param mediaType
-	 * @return T
-	 */
-	public T mediaType(String mediaType) {
-		contentType(mediaType, null);
-		return (T) this;
-	}
-
-	/**
-	 * 获取contentType
-	 * @return contentType
-	 */
-	public String contentType() {
-		return header(Header.CONTENT_TYPE);
-	}
-	/**
-	 * 设置contentType
-	 * @param contentType contentType
-	 * @return T 自己
-	 */
-	public T contentType(String contentType) {
-		header(Header.CONTENT_TYPE, contentType);
-		return (T) this;
-	}
-	/**
-	 * 设置Content-Type<br>
-	 * 同时设置Charset
-	 * @param mediaType mediaType
-	 * @param charset 字符集
-	 * @return T 自己
-	 */
-	public T contentType(String mediaType, String charset) {
-		if(StrUtil.isNotBlank(mediaType)) {
-			this.mediaType = mediaType;
-		}
-		if(StrUtil.isNotBlank(charset)) {
-			this.charset = charset;
-		}
-
-		String contentType = this.mediaType;
-		if (this.charset != null) {
-			contentType += ";charset=" + charset;
-		}
-
-		return contentType(contentType);
-	}
-	
-	/**
-	 * 设置是否为长连接
-	 * @param isKeepAlive 是否长连接
-	 * @return T 自己
-	 */
-	public T keepAlive(boolean isKeepAlive) {
-		Header value = isKeepAlive ? Header.KEEP_ALIVE : Header.CLOSE;
-		header(Header.CONNECTION, value.toString());
-		return (T) this;
-	}
-	/**
-	 * 获取是否为活动连接
-	 * @return boolean
-	 */
-	public boolean isKeepAlive() {
-		String connection = header(Header.CONNECTION);
-		if (connection == null) {
-			return !httpVersion.equalsIgnoreCase(HTTP_1_0);
-		}
-
-		return !connection.equalsIgnoreCase(Header.CLOSE.toString());
-	}
-
-	/**
-	 * 获取内容长度
-	 * @return String
-	 */
-	public String contentLength() {
-		return header(Header.CONTENT_LENGTH);
-	}
-	/**
-	 * 设置内容长度
-	 * @param value
-	 * @return T
-	 */
-	public T contentLength(int value) {
-		header(Header.CONTENT_LENGTH, String.valueOf(value));
-		return (T) this;
-	}
-
-	/**
-	 * 获取内容编码
-	 * @return String
-	 */
-	public String contentEncoding() {
-		return header(Header.CONTENT_ENCODING);
-	}
-	/**
-	 * 获取请求头
-	 * @return String
-	 */
-	public String accept() {
-		return header(Header.ACCEPT);
-	}
-	
-	/**
-	 * 设置请求头
-	 * @param accept
-	 * @return T
-	 */
-	public T accept(String accept) {
-		header(Header.ACCEPT, accept);
-		return (T) this;
-	}
-	
-	/**
-	 * 获取请求编码
-	 * @return String
-	 */
-	public String acceptEncoding() {
-		return header(Header.ACCEPT_ENCODING);
-	}
-	/**
-	 * 设置请求编码
-	 * @param encodings
-	 * @return T
-	 */
-	public T acceptEncoding(String encodings) {
-		header(Header.ACCEPT_ENCODING, encodings);
 		return (T) this;
 	}
 }

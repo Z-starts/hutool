@@ -1,6 +1,8 @@
 package com.xiaoleilu.hutool.demo;
 
-import com.xiaoleilu.hutool.ZipUtil;
+import java.io.IOException;
+
+import com.xiaoleilu.hutool.util.ZipUtil;
 
 /**
  * ZipUtil测试类
@@ -9,22 +11,9 @@ import com.xiaoleilu.hutool.ZipUtil;
  */
 public class ZipUtilTest {
 	
-	public static void main(String[] args) {
-		String dir = "D:\\Java\\maven";
-		String zipPath = "d:/aaa/test.zip";
-		try {
-			ZipUtil.zip(dir, zipPath,true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public static void main(String[] args) throws IOException {
+		ZipUtil.zip("d:/java/maven/README.txt");
 
-		String zipFilePath = "d:/aaa/test.zip";
-		String unzipFilePath = "d:/aaa/";
-		try {
-			ZipUtil.unzip(zipFilePath, unzipFilePath);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		System.out.println("OK");
 	}
 }
